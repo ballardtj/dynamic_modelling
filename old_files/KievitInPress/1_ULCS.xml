@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<model name="ULCS" specificationType="ONYX" specificationVersion="1.0-947">
+<graph backgroundColor="#ffffff" height="519" meanTreatment="explicit" width="794">
+<node caption="COG_T1" constant="false" fillColor="#ffffff" fillStyle="GRADIENT" height="50" id="0" labelFontSize="10" latent="false" lineColor="#0" normalized="false" strokeWidth="2.0" width="50" x="173" y="276"/>
+<node caption="COG_T2" constant="false" fillColor="#ffffff" fillStyle="GRADIENT" height="50" id="1" labelFontSize="10" latent="false" lineColor="#0" normalized="false" strokeWidth="2.0" width="50" x="349" y="276"/>
+<node caption="ΔCOG" constant="false" fillColor="#ffffff" fillStyle="GRADIENT" height="50" id="2" labelFontSize="10" latent="true" lineColor="#0" normalized="false" strokeWidth="2.0" width="50" x="348" y="133"/>
+<node caption="const" constant="true" fillColor="#ffffff" fillStyle="GRADIENT" height="50" id="3" labelFontSize="10" latent="true" lineColor="#0" normalized="false" strokeWidth="2.0" width="50" x="126" y="67"/>
+<edge arrowHead="1" automaticControlPoints="true" automaticNaming="false" curvature="50" definitionVariable="false" doubleHeaded="true" fixed="false" labelFontSize="10.0" lineColor="#33cc00" parameterName="VAR_COG_T1" relativeLabelPosition="0.5" sourceNodeId="0" strokeWidth="2.0" targetNodeId="0" value="8.533897778168729"/>
+<edge arrowHead="1" automaticControlPoints="true" automaticNaming="false" curvature="50" definitionVariable="false" doubleHeaded="true" fixed="false" labelFontSize="10.0" lineColor="#cc00" parameterName="VAR_ΔCOG" relativeLabelPosition="0.5" sourceNodeId="2" strokeWidth="2.0" targetNodeId="2" value="0.0"/>
+<edge arrowHead="1" automaticControlPoints="true" automaticNaming="false" curvature="50" definitionVariable="false" doubleHeaded="false" fixed="true" labelFontSize="10.0" lineColor="#0" parameterName="ΔCOG-&gt;COG_T2" relativeLabelPosition="0.5" sourceNodeId="2" strokeWidth="2.0" targetNodeId="1" value="1.0"/>
+<edge arrowHead="1" automaticControlPoints="true" automaticNaming="false" curvature="50" definitionVariable="false" doubleHeaded="false" fixed="false" labelFontSize="10.0" lineColor="#0" parameterName="$\mu_{COG_T1}" relativeLabelPosition="0.5" sourceNodeId="3" strokeWidth="2.0" targetNodeId="0" value="0.0"/>
+<edge arrowHead="1" automaticControlPoints="true" automaticNaming="false" curvature="50" definitionVariable="false" doubleHeaded="false" fixed="false" labelFontSize="10.0" lineColor="#0" parameterName="$\mu_{ΔCOG}" relativeLabelPosition="0.5" sourceNodeId="3" strokeWidth="2.0" targetNodeId="2" value="0.0"/>
+<edge arrowHead="1" automaticControlPoints="true" automaticNaming="false" curvature="50" definitionVariable="false" doubleHeaded="false" fixed="true" labelFontSize="10.0" lineColor="#0" parameterName="COG_T1-&gt;COG_T2" relativeLabelPosition="0.5" sourceNodeId="0" strokeWidth="2.0" targetNodeId="1" value="1.0"/>
+<edge arrowHead="1" automaticControlPoints="true" automaticNaming="false" curvature="50" definitionVariable="false" doubleHeaded="false" fixed="false" labelFontSize="12.0" lineColor="#ff0033" parameterName="COG_T1-&gt;ΔCOG" relativeLabelPosition="0.5" sourceNodeId="0" strokeWidth="3.0" targetNodeId="2" value="-0.0"/>
+</graph>
+</model>

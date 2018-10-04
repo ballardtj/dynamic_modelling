@@ -1,0 +1,1 @@
+This folder contains files from my initial investigation into whether the univariate and bivariate latent change score models can recover. Turns out, they both do pretty well under most circumstances.
