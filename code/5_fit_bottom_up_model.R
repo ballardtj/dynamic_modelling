@@ -12,22 +12,22 @@ library(rstan) #for rstan installation instructions, see https://github.com/stan
 #make sure working directory is set to the "analysis" folder
 
 #load data
-dat=read.csv("data/raw/goal_data.csv")
+load("data/clean/goal_data.RData")
 
-#declare variables in R environment that are needed for models
-subject=dat$subject
-condition=as.numeric(dat$condition) #1 = approach, #2 = avoidance
-observed_goal=dat$goal
-trial=dat$trial
-performance=dat$performance
-Nsubj=length(unique(subject))
-Ntotal=length(subject)
+data = filter(data,condition==1) #only approach for now
+stan_list = as.list(data)
+stan_list$Ntotal = nrow(data)
+stan_list$Nsubj = length(unique(data$subject))
+stan_list$Ntrial = length(unique(data$trial))
+stan_list$time = stan_list$time/60
+stan_list$goal = data %>% group_by(subject,trial) %>% summarise(goal = mean(goal)) %>% pull(goal)
+
 
 ##---------------------------------------------------------------------------
-# Model 1: Sample-level Model
+# Model 1: Bottom-up sample-level Model
 
 #implement model
-fit_sample = stan(file="../models/1_sample_level_model.stan")
+fit_bu_sample = stan(file="models/r1_bottom_up_sample_level_model.stan")
 
 #view summary of results
 fit_sample

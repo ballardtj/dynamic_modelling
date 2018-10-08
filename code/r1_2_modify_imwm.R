@@ -1,3 +1,5 @@
+#This code adapts the IMWM so that it can be run on Gee et al (2018) data
+
 # Simulation setup
 
 tstep = 1
@@ -44,36 +46,30 @@ performance_vec[1] = performance_0
 
 for (i in 1:(length(tvec)-1)) {
 
-  EFFORT_minus = EFFORT_vec[i]
-  SELF_EFFICACY_minus = SELF_EFFICACY_vec[i]
-  Weight = initial_weight/(1+i*tstep*fade)
+  #EFFORT_minus = EFFORT_vec[i]
+  #SELF_EFFICACY_minus = SELF_EFFICACY_vec[i]
+  #Weight = initial_weight/(1+i*tstep*fade)
 
-  if (i >= tchange){
-    goal_specificity = 1;
+  value = intrinsic_value + assigned_goal_difficulty*goal_effect_weight
+
+  if (SELF_EFFICACY_vec[i]*value >= assigned_goal_difficulty ){
+    personal_goal = assigned_goal_difficulty
   } else {
-    goal_specificity = 0
+    personal_goal = SELF_EFFICACY_vec[i]*value
   }
 
-  value = intrinsic_value + assigned_goal_difficulty*goal_specificity*goal_effect_weight
+  #performance = min(EFFORT_vec[i]*(1-task_complexity)*ability, ability)
+  #performance = performance_vec[i]
+  capacity = performance_vec[i]/EFFORT_vec[i]
 
-  if (SELF_EFFICACY_minus*value*goal_specificity >= assigned_goal_difficulty ){
-    personal_goal = assigned_goal_difficulty;
-  } else {
-    personal_goal = SELF_EFFICACY_minus*value
-  }
+  Rate_EFFORT = personal_goal - performance_vec[i]
+  Rate_SELF_EFFICACY = k*(capacity-SELF_EFFICACY_vec[i])
 
-  performance = min(EFFORT_minus*(1-task_complexity)*ability, ability)
-  capacity = performance/EFFORT_minus
+  EFFORT_vec[i+1] = EFFORT_vec[i] + Rate_EFFORT*tstep
+  SELF_EFFICACY_vec[i+1] = SELF_EFFICACY_vec[i] + Rate_SELF_EFFICACY*tstep
 
-  Rate_EFFORT = personal_goal - (performance - (1-feedback)*SELF_EFFICACY_minus)
-  Rate_SELF_EFFICACY = k*(capacity-SELF_EFFICACY_minus) + Weight*assigned_goal_difficulty*goal_specificity*assigned_goal_effect
 
-  EFFORT = EFFORT_minus + Rate_EFFORT*tstep
-  SELF_EFFICACY = SELF_EFFICACY_minus + Rate_SELF_EFFICACY*tstep
-
-  EFFORT_vec[i+1] = EFFORT
-  SELF_EFFICACY_vec[i+1] = SELF_EFFICACY
-  performance_vec[i+1] = min(EFFORT*(1-task_complexity)*ability, ability)
+  performance_vec[i+1] = min( EFFORT_vec[i+1]*(1-task_complexity)*ability , ability) #ability is the ceiling on performance
 
 }
 
