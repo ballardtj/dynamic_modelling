@@ -8,7 +8,7 @@ rm(list=ls())
 
 #load rtan
 library(rstan) #for rstan installation instructions, see https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started
-
+library(tidyverse)
 #make sure working directory is set to the "analysis" folder
 
 #load data
@@ -16,21 +16,70 @@ load("data/clean/goal_data.RData")
 
 data = filter(data,condition==1) #only approach for now
 stan_list = as.list(data)
+stan_list$subject = ceiling (stan_list$subject / 2)
 stan_list$Ntotal = nrow(data)
 stan_list$Nsubj = length(unique(data$subject))
 stan_list$Ntrial = length(unique(data$trial))
 stan_list$time = stan_list$time/60
 stan_list$goal = data %>% group_by(subject,trial) %>% summarise(goal = mean(goal)) %>% pull(goal)
-
+stan_list$trial_index = (stan_list$subject-1)*5 + stan_list$trial
+stan_list$goal = stan_list$goal / 20
+stan_list$score = stan_list$score / 20
 
 ##---------------------------------------------------------------------------
 # Model 1: Bottom-up sample-level Model
 
 #implement model
-fit_bu_sample = stan(file="models/r1_bottom_up_sample_level_model.stan")
+fit_bu_sample = stan(file="models/r1_bottom_up_sample_level_model.stan",data=stan_list,cores=4)
 
 #view summary of results
-fit_sample
+fit_bu_sample
+
+data = dim(samples$sampled_goal)
+
+samples =rstan::extract(fit_bu_sample)
+
+#Get 100 samples for posterior predictives
+samples_used = sample(1:4000,size=100)
+pp_list=list()
+
+for(i in 1:100){
+  pp_list[[i]]=data %>%
+    mutate(predicted_goal = samples$sampled_goal[samples_used[i],],
+           predicted_effort = samples$sampled_eff[samples_used[i],],
+           predicted_score = samples$sampled_perf[samples_used[i],]) %>%
+    group_by(trial,time) %>%
+    summarise(iter = samples_used[i],
+              predicted_goal = mean(predicted_goal),
+              predicted_effort = mean(predicted_effort),
+              predicted_score = mean(predicted_score),
+              observed_goal = mean(goal),
+              observed_effort = mean(eff),
+              observed_score = mean(score))
+}
+
+bind_rows(pp_list) %>%
+  gather(key=key,value=value,predicted_goal:observed_score) %>%
+  separate(col=key,into=c('source','variable')) %>%
+  #mutate(condition = factor(condition,levels=c('approach','avoidance'),labels=c('Approach','Avoidance'))) %>%
+  group_by(trial,time,source,variable) %>%
+  summarise(mean = mean(value),
+            upper = quantile(value,0.975),
+            lower = quantile(value,0.025)) %>%
+  ggplot() +
+  #geom_ribbon(aes(ymin=lower,ymax=upper,x=time,group=source)) +
+  geom_line(aes(y=mean,x=time,group=source,colour=source)) +
+  facet_grid(variable ~ trial)
+
+
+
+%>%
+
+
+  summarise( = mean(predicted_goal_1),
+            Predicted_2 = mean(predicted_goal_2),
+            Observed = mean(observed_goal)) %>%
+  gather(key=Source,value=goal_mean,Predicted_1:Observed)
 
 #save results
 save(fit_sample,file="../output/1_sample_fit.RData")
