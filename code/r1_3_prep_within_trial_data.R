@@ -7,19 +7,19 @@
 rm(list=ls())
 
 #load rtan
-library(foreign)
+#library(foreign)
 library(tidyverse)
 
 #make sure working directory is set to the "analysis" folder
-
-#load data
-data = read.spss("data/raw/HLM WitTrial.sav", use.value.labels=F,to.data.frame=TRUE) %>%
+data = read_csv("data/raw/HLM_WitTrial_P1.csv") %>%
   mutate(subject = subno - 100,
+         condition = (condition==1) + 2*(condition==-1),
          trial = torder - 1,
-         goal = wgoal,
-         diff = wdiff,
-         eff = weff,
+         time = time/60,
+         effort = eff,
+         difficulty = diff,
          score = (condition==1)*correct + (condition==2)*incorrect) %>%
-  select(subject,condition,trial,time,goal,diff,eff,score)
+  select(subject,condition,trial,goal,time,difficulty,effort,score)
+
 
 save(data,file="data/clean/goal_data.RData")
