@@ -282,7 +282,8 @@ for(TeamN in 1:length(numplay)){
 
 }
 
-data = data.frame(Coeffs_Cond)
+data = data.frame(value=Coeffs_Cond)
+data$iter = 1:5000
 data$A = A
 data$r = r
 
@@ -292,7 +293,7 @@ save(data,file="data/raw/us_and_them.RData")
 
 
 rm(list=ls())
-#load("capture.RData")
+load("capture.RData")
 library(reshape)
 library(ggplot2)
 
