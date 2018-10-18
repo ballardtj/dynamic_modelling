@@ -43,12 +43,7 @@ pdf(file="figures/pairs.pdf",height=10,width=12)
 pairs(fit_fb_sample,pars=pars)
 dev.off()
 
-alpha = -0.76    #2.56 # + 0.91*50
-beta = 1.16 #+ 0.51*50
-effort = seq(0,10,0.01)
-#P = exp(alpha+beta*effort)/(1+exp(alpha+beta*effort))
-P = 1/(1+exp(-1*(alpha+beta*effort)));
-plot(effort,P)
+
 
 # mean  se_mean       sd       2.5%       25%      50%
 # alpha_int                  -0.56     0.42     0.91      -1.67     -1.24    -0.95
