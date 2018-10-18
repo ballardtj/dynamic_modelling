@@ -18,6 +18,7 @@ data = filter(data,condition==1) #only approach for now
 stan_list = as.list(data)
 #stan_list$subject = ceiling (stan_list$subject / 2)
 stan_list$Ntotal = nrow(data)
+stan_list$overall_time = (stan_list$trial-1)*5 + stan_list$time
 #stan_list$Nsubj = length(unique(data$subject))
 #stan_list$Ntrial = length(unique(data$trial))
 #stan_list$time = stan_list$time/60
@@ -35,6 +36,32 @@ fit_fb_sample = stan(file="models/r2_feedback_model.stan",data=stan_list,cores=4
 #view summary of results
 fit_fb_sample
 
+pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted'))]
+traceplot(fit_fb_sample,pars)
+
+pdf(file="figures/pairs.pdf",height=10,width=12)
+pairs(fit_fb_sample,pars=pars)
+dev.off()
+
+alpha = -0.76    #2.56 # + 0.91*50
+beta = 1.16 #+ 0.51*50
+effort = seq(0,10,0.01)
+#P = exp(alpha+beta*effort)/(1+exp(alpha+beta*effort))
+P = 1/(1+exp(-1*(alpha+beta*effort)));
+plot(effort,P)
+
+# mean  se_mean       sd       2.5%       25%      50%
+# alpha_int                  -0.56     0.42     0.91      -1.67     -1.24    -0.95
+# alpha_slope                 0.91     0.47     0.76       0.06      0.21     0.61
+# beta_int                    1.88     1.47     2.12       0.04      0.54     0.63
+# beta_slope                  0.51     0.21     0.35       0.04      0.17     0.45
+# eff_0                       4.11     2.10     2.97       0.30      1.68     4.31
+# eff_int                     0.12     0.74     1.05      -1.01     -0.50    -0.17
+# gain1                       0.36     0.30     0.42       0.00      0.01     0.20
+
+
+
+
 # data = dim(samples$sampled_goal)
 
 samples =rstan::extract(fit_fb_sample)
@@ -46,11 +73,17 @@ pp_list=list()
 for(i in 1:100){
   pp_list[[i]]=data %>%
     mutate(#predicted_goal = samples$sampled_goal[samples_used[i],],
+          # predicted_ability = samples$predicted_ability[samples_used[i],],
+           #predicted_alpha = samples$predicted_alpha[samples_used[i],],
+           #predicted_beta = samples$predicted_beta[samples_used[i],],
            predicted_effort = samples$sampled_effort[samples_used[i],],
            predicted_score = samples$sampled_score[samples_used[i],]) %>%
     group_by(trial,time) %>%
     summarise(iter = samples_used[i],
               #predicted_goal = mean(predicted_goal),
+              #predicted_ability = mean(predicted_ability),
+              #predicted_alpha = mean(predicted_alpha),
+              #predicted_beta = mean(predicted_beta),
               predicted_effort = mean(predicted_effort),
               predicted_score = mean(predicted_score),
               #observed_goal = mean(goal),
