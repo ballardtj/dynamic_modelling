@@ -47,11 +47,11 @@ transformed parameters {
 
     //if the trial being considered is the first trial for that subject...
     if(time[i]==1){
-      predicted_effort[i] = eff_0 + eff_int + goal[i]*gain1;//+ difficulty[i]*gain2; //discrepancy is equal to the goal at the start of the trial
+      predicted_effort[i] = eff_0 + eff_int + gain1*goal[i]/predicted_ability[i];//+ difficulty[i]*gain2; //discrepancy is equal to the goal at the start of the trial
       predicted_score[i] = gain2 / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
     }
     if(time[i]>1){
-      predicted_effort[i] = predicted_effort[i-1] + eff_int + (goal[i] - predicted_score[i-1])*gain1;// + difficulty[i]*gain2;
+      predicted_effort[i] = predicted_effort[i-1] + eff_int + gain1*(goal[i] - predicted_score[i-1])/predicted_ability[i];// + difficulty[i]*gain2;
       predicted_score[i] = predicted_score[i-1] + gain2 / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
     }
   }
