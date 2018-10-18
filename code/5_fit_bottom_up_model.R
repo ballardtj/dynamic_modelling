@@ -36,6 +36,8 @@ fit_fb_sample = stan(file="models/r2_feedback_model.stan",data=stan_list,cores=4
 #view summary of results
 fit_fb_sample
 
+save(fit_fb_sample,file="data/derived/fit_fb_sample.RData")
+
 pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted'))]
 traceplot(fit_fb_sample,pars)
 
