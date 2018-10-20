@@ -7,13 +7,15 @@
 rm(list=ls())
 
 #load rtan
-#library(foreign)
+library(foreign)
 library(tidyverse)
+
+#sdata = read.spss("data/raw/HLM WitTrial.sav")
 
 #make sure working directory is set to the "analysis" folder
 data = read_csv("data/raw/HLM_WitTrial_P1.csv") %>%
   mutate(subject = subno - 100,
-         condition = (condition==1) + 2*(condition==-1),
+         condition = (condition==-1) + 2*(condition==1), #1=approach, 2=avoidance
          trial = torder - 1,
          time = time/60,
          effort = eff,
@@ -23,3 +25,11 @@ data = read_csv("data/raw/HLM_WitTrial_P1.csv") %>%
 
 
 save(data,file="data/clean/goal_data.RData")
+
+
+data %>%
+  group_by(condition,torder) %>%
+  summarise(goal = mean(goal))
+
+
+
