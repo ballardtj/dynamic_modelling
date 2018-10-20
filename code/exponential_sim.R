@@ -11,9 +11,9 @@ expand.grid(effort = seq(0,10,0.1),
 
 
 
-alpha = 0    #2.56 # + 0.91*50
-beta = 1.16 #+ 0.51*50
+alpha = 8.35  + 13.99*50
+beta = 2.41 + 1.63*50
 effort = seq(0,10,0.01)
 #P = exp(alpha+beta*effort)/(1+exp(alpha+beta*effort))
 P = 1/(1+exp(-1*(alpha+beta*effort)));
-plot(effort,P)
+plot(effort,P,ylim=c(0,1))
