@@ -69,7 +69,7 @@ pp_list=list()
 
 for(i in 1:100){
   pp_list[[i]]=data %>%
-    mutate(#predicted_goal = samples$sampled_goal[samples_used[i],],
+    mutate(predicted_goal = samples$sampled_goal[samples_used[i],],
            predicted_ability = samples$predicted_ability[samples_used[i],],
            #predicted_alpha = samples$predicted_alpha[samples_used[i],],
            #predicted_beta = samples$predicted_beta[samples_used[i],],
@@ -77,7 +77,7 @@ for(i in 1:100){
            predicted_score = samples$sampled_score[samples_used[i],]) %>%
     group_by(trial,time) %>%
     summarise(iter = samples_used[i],
-              #predicted_goal = mean(predicted_goal),
+              predicted_goal = mean(predicted_goal),
               predicted_ability = mean(predicted_ability),
               #predicted_alpha = mean(predicted_alpha),
               #predicted_beta = mean(predicted_beta),
@@ -89,7 +89,7 @@ for(i in 1:100){
 }
 
 bind_rows(pp_list) %>%
-  gather(key=key,value=value,predicted_ability:observed_score) %>%
+  gather(key=key,value=value,predicted_goal:observed_score) %>%
   separate(col=key,into=c('source','variable')) %>%
   #mutate(condition = factor(condition,levels=c('approach','avoidance'),labels=c('Approach','Avoidance'))) %>%
   group_by(trial,time,source,variable) %>%
