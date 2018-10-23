@@ -11,13 +11,13 @@ data {
 }
 
 parameters {
-  real<lower=0> ability_0;
+  //real<lower=0> ability_0;
   real<lower=0> max_ability_gain; //
   real<lower=0> learning_rate;
-  real alpha_int;
-  real<lower=0> alpha_slope;
-  real<lower=0> beta_int;
-  real<lower=0> beta_slope;
+  //real alpha_int;
+  //real<lower=0> alpha_slope;
+  //real<lower=0> beta_int;
+  //real<lower=0> beta_slope;
   //real<lower=0> delta_int;
   //real<lower=0> delta_slope;
 
@@ -25,11 +25,11 @@ parameters {
   real eff_int;
   //real<lower=0> dp_int;         //linear change in performnace;
   real<lower=0> gain1;                   //initialize single gain1 parameter for entire sample
-  //real<lower=0> gain2;                   //initialize single gain2 parameter for entire sample
-  real<lower=0> gain3;                   //effect of difficulty on effort
+  real<lower=0> gain2;                   //initialize single gain2 parameter for entire sample
+  //real<lower=0> gain3;                   //effect of difficulty on effort
   //real gain4;                   //effect of difficulty on change in performance;
   //real gain5;
-  real g_alpha;
+  real<lower=0> g_alpha;
   real g_beta;
   real<lower=0> sigma1;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma2;         //initialize single sigma parameter for entire sample and set lower bound at 0.
@@ -41,9 +41,13 @@ transformed parameters {
   real predicted_ability[Ntotal];
   real predicted_effort[Ntotal];
   real predicted_score[Ntotal];
-  real predicted_alpha;//[Ntotal];
-  real predicted_beta;//[Ntotal];
+  //real predicted_alpha;//[Ntotal];
+  //real predicted_beta;//[Ntotal];
   real ability_max;
+  real ability_0 = 0.2;
+  //real g_alpha = 1;
+  //real gain1 = 1;
+  //real eff_int = 0;
   //real predicted_delta;//[Ntotal];
 
   //LIKELIHOOD
@@ -51,8 +55,8 @@ transformed parameters {
   for(i in 1:Ntotal){
     ability_max = ability_0 + max_ability_gain;
     predicted_ability[i] = ability_max - (ability_max - ability_0)*exp(-learning_rate*overall_time[i]);
-    predicted_alpha = alpha_int + alpha_slope*predicted_ability[i];
-    predicted_beta = beta_int + beta_slope*predicted_ability[i];
+    //predicted_alpha = alpha_int + alpha_slope*predicted_ability[i];
+    //predicted_beta = beta_int + beta_slope*predicted_ability[i];
     //predicted_delta = delta_int + delta_slope*predicted_ability[i];
     //predicted_effort[i] = eff_int + gain1*(goal[i] - predicted_score[i-1])/predicted_ability[i];// + difficulty[i]*gain2;
 
@@ -65,14 +69,14 @@ transformed parameters {
       if(trial[i]>1){
         predicted_goal[i] = predicted_goal[i-1] + g_alpha*(predicted_score[i-1]-predicted_goal[i-1]) + g_beta;
       }
-      predicted_effort[i] = gain3*predicted_goal[i]/(6-time[i])/predicted_ability[i];//+ difficulty[i]*gain2; //discrepancy is equal to the goal at the start of the trial
-      predicted_score[i] = predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
+      predicted_effort[i] = gain1*predicted_goal[i];///predicted_ability[i];//+ difficulty[i]*gain2; //discrepancy is equal to the goal at the start of the trial
+      predicted_score[i] = gain2*predicted_effort[i]*predicted_ability[i];  //predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
     }
     if(time[i]>1){
       predicted_goal[i] = predicted_goal[i-1];
       //predicted_effort[i] =  predicted_effort[i-1] + eff_int + gain1*(goal[i] - predicted_score[i-1]);// + difficulty[i]*gain2;
-      predicted_effort[i] = predicted_effort[i-1]*eff_int + gain1*(predicted_goal[i] - predicted_score[i-1])/(6-time[i])/predicted_ability[i];// + difficulty[i]*gain2;
-      predicted_score[i] = predicted_score[i-1] + predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
+      predicted_effort[i] = predicted_effort[i-1] + eff_int + gain1*(predicted_goal[i] - predicted_score[i-1]);///predicted_ability[i];// + difficulty[i]*gain2;
+      predicted_score[i] = predicted_score[i-1] + gain2*predicted_effort[i]*predicted_ability[i]; //predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
     }
   }
 
@@ -81,25 +85,25 @@ transformed parameters {
 
 model {
   //PRIORS
-  ability_0 ~ normal(0,10);
-  max_ability_gain ~ normal(0,50);
-  learning_rate ~ normal(0,10);
-  alpha_int ~ normal(0,10);
-  alpha_slope ~ normal(0,10);
-  beta_int ~ normal(0,10);
-  beta_slope ~ normal(0,10);
+  //ability_0 ~ normal(0,1);
+  max_ability_gain ~ normal(0,5);
+  learning_rate ~ normal(0,5);
+  //alpha_int ~ normal(0,10);
+  //alpha_slope ~ normal(0,10);
+  //beta_int ~ normal(0,10);
+  //beta_slope ~ normal(0,10);
   //delta_int ~ normal(0,10);
   //delta_slope ~ normal(0,10);
   //eff_0 ~ normal(5,2);
-  eff_int ~ normal(-5,10);
-  gain1 ~ normal(0,10);
-  //gain2 ~ normal(0,10);  //set prior on gain1
-  gain3 ~ normal(0,100);
-  sigma1 ~ normal(0,10);         //set prior on sigma1
-  sigma2 ~ normal(0,10);         //set prior on sigma2
+  eff_int ~ normal(0,5);
+  gain1 ~ normal(0,1);
+  gain2 ~ normal(0,1);  //set prior on gain1
+  //gain3 ~ normal(0,10);
+  sigma1 ~ normal(0,2);         //set prior on sigma1
+  sigma2 ~ normal(0,2);         //set prior on sigma2
   g_alpha ~ normal(0,5);
   g_beta ~ normal(0,5);
-  sigma3 ~ normal(0,10);
+  sigma3 ~ normal(0,2);
 
   for(i in 1:Ntotal){
     effort[i] ~ normal(predicted_effort[i],sigma1) T[0,];
