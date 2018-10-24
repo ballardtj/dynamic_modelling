@@ -14,22 +14,18 @@ library(tidyverse)
 
 #make sure working directory is set to the "analysis" folder
 data = read_csv("data/raw/HLM_WitTrial_P1.csv") %>%
-  mutate(subject = subno - 100,
+  mutate(subject = as.numeric(as.factor(subno)),
          condition = (condition==-1) + 2*(condition==1), #1=approach, 2=avoidance
          trial = torder - 1,
          time = time/60,
          effort = eff,
          difficulty = diff,
-         score = (condition==1)*correct + (condition==2)*incorrect) %>%
-  select(subject,condition,trial,goal,time,difficulty,effort,score)
+         score = (condition==1)*correct + (condition==2)*incorrect,
+         obs=1:n()) %>%
+  select(obs,subject,condition,trial,goal,time,difficulty,effort,score)
 
 
 save(data,file="data/clean/goal_data.RData")
-
-
-data %>%
-  group_by(condition,torder) %>%
-  summarise(goal = mean(goal))
 
 
 

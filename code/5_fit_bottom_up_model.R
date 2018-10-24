@@ -9,12 +9,14 @@ rm(list=ls())
 #load rtan
 library(rstan) #for rstan installation instructions, see https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started
 library(tidyverse)
+library(tidybayes)
+library(shinystan)
 #make sure working directory is set to the "analysis" folder
 
 #load data
 load("data/clean/goal_data.RData")
 
-data = filter(data,condition==1) #only approach for now
+data = filter(data,condition==1) %>% mutate(obs = 1:n())#only approach for now
 stan_list = as.list(data)
 #stan_list$subject = ceiling (stan_list$subject / 2)
 stan_list$Ntotal = nrow(data)
@@ -61,24 +63,41 @@ dev.off()
 
 # data = dim(samples$sampled_goal)
 
-samples =rstan::extract(fit_fb_sample)
+samples =rstan::extract(fit_fb_sample,permuted=FALSE)
 
 #Get 100 samples for posterior predictives
-samples_used = sample(1:4000,size=100)
+samples_used = sample(1:1000,size=100)
 pp_list=list()
 
+variable='goal'
+obs=1
+chain=2
+iter=5
+
+get_sample=function(samples,obs,variable,chain,iter){
+  variable_name = paste0('sampled_',variable,'[',obs,']')
+  val = samples[,,variable_name][iter,chain]
+  #print(obs)
+  return(val)
+}
+ctr=0
 for(i in 1:100){
-  pp_list[[i]]=data %>%
-    mutate(predicted_goal = samples$sampled_goal[samples_used[i],],
-           predicted_ability = samples$predicted_ability[samples_used[i],],
+  print(i)
+  for(c in 1:4){
+    ctr=ctr+1
+    pp_list[[ctr]]= data %>%
+      rowwise() %>%
+      mutate(predicted_goal = get_sample(samples,obs,variable='goal',chain=c,iter=samples_used[i]),
+           #predicted_ability = samples$predicted_ability[samples_used[i],],
            #predicted_alpha = samples$predicted_alpha[samples_used[i],],
            #predicted_beta = samples$predicted_beta[samples_used[i],],
-           predicted_effort = samples$sampled_effort[samples_used[i],],
-           predicted_score = samples$sampled_score[samples_used[i],]) %>%
-    group_by(trial,time) %>%
-    summarise(iter = samples_used[i],
+           predicted_effort = get_sample(samples,obs,variable='effort',chain=c,iter=samples_used[i]),
+           predicted_score = get_sample(samples,obs,variable='score',chain=c,iter=samples_used[i])) %>%
+      group_by(trial,time) %>%
+      summarise(iter = samples_used[i],
+                chain = c,
               predicted_goal = mean(predicted_goal),
-              predicted_ability = mean(predicted_ability),
+              #predicted_ability = mean(predicted_ability),
               #predicted_alpha = mean(predicted_alpha),
               #predicted_beta = mean(predicted_beta),
               predicted_effort = mean(predicted_effort),
@@ -86,20 +105,44 @@ for(i in 1:100){
               observed_goal = mean(goal),
               observed_effort = mean(effort),
               observed_score = mean(score))
+  }
 }
 
-bind_rows(pp_list) %>%
+pd = bind_rows(pp_list) %>%
   gather(key=key,value=value,predicted_goal:observed_score) %>%
   separate(col=key,into=c('source','variable')) %>%
   #mutate(condition = factor(condition,levels=c('approach','avoidance'),labels=c('Approach','Avoidance'))) %>%
-  group_by(trial,time,source,variable) %>%
+  group_by(trial,time,source,variable,chain) %>%
   summarise(mean = mean(value),
             upper = quantile(value,0.975),
-            lower = quantile(value,0.025)) %>%
-  ggplot() +
-  geom_ribbon(aes(ymin=lower,ymax=upper,x=time,group=source),fill="skyblue") +
-  geom_line(aes(y=mean,x=time,group=source,colour=source)) +
+            lower = quantile(value,0.025))
+  ggplot(pd) +
+  geom_ribbon(aes(ymin=lower,ymax=upper,x=time,group=interaction(source,chain)),fill="skyblue") +
+  geom_line(data=subset(pd,source=="predicted"),aes(y=mean,x=time,group=interaction(source,chain),colour=interaction(source,chain))) +
   facet_grid(variable ~ trial,scale="free")
+
+smry = summary(fit_fb_sample)
+smry$summary[pars,]
+smry$c_summary[pars,,]
+#1 and 3 good, #2 and 4 bad
+
+launch_shinystan(fit_fb_sample)
+
+###tidy bayes
+tidyfit = tidy_draws(fit_fb_sample) %>%
+  select(-contains('sampled')) %>%
+  gather_draws()
+
+
+
+
+tidyfit = fit_fb_sample %>%
+  gather_draws(predicted_goal[obs],predicted_effort[obs],predicted_score[obs])
+
+
+
+
+
 
 
 bind_rows(pp_list) %>%
