@@ -29,11 +29,33 @@ stan_list$overall_time = (stan_list$trial-1)*5 + stan_list$time
 #stan_list$goal = stan_list$goal / 20
 #stan_list$score = stan_list$score / 20
 
+
+##---------------
+# Multivariate regression
+# library(rstanarm)
+#
+# f1 <- stan_mvmer(
+#   formula = list(
+#     score ~ effort + (1 | subject),
+#     effort ~ goal + (1 | subject)),
+#   data = data,
+#   # this next line is only to keep the example small in size!
+#   chains = 1, cores = 1, seed = 12345, iter = 1000)
+# summary(f1)
+#
+# names(f1)
+#
+# stancode <- rstan::get_stancode(f1$stanfit)
+# cat(stancode)
+
 ##---------------------------------------------------------------------------
 # Model 1: Bottom-up sample-level Model
 
 #implement model
-fit_fb_sample = stan(file="models/r2_feedback_model.stan",data=stan_list,cores=4)
+fit_fb_sample = stan(file="models/r2_feedback_model.stan",
+                     data=stan_list,
+                     cores=4,
+                     control=list(adapt_delta=0.8))
 
 #view summary of results
 fit_fb_sample
@@ -41,7 +63,7 @@ fit_fb_sample
 save(fit_fb_sample,file="data/derived/fit_fb_sample.RData")
 
 pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted'))]
-traceplot(fit_fb_sample,pars)
+traceplot(fit_fb_sample,pars)#,inc_warmup = TRUE)
 
 pdf(file="figures/pairs.pdf",height=10,width=12)
 pairs(fit_fb_sample,pars=pars)
@@ -69,10 +91,10 @@ samples =rstan::extract(fit_fb_sample,permuted=FALSE)
 samples_used = sample(1:1000,size=100)
 pp_list=list()
 
-variable='goal'
-obs=1
-chain=2
-iter=5
+# variable='goal'
+# obs=1
+# chain=2
+# iter=5
 
 get_sample=function(samples,obs,variable,chain,iter){
   variable_name = paste0('sampled_',variable,'[',obs,']')
@@ -81,7 +103,7 @@ get_sample=function(samples,obs,variable,chain,iter){
   return(val)
 }
 ctr=0
-for(i in 1:100){
+for(i in 1:10){
   print(i)
   for(c in 1:4){
     ctr=ctr+1
@@ -116,9 +138,11 @@ pd = bind_rows(pp_list) %>%
   summarise(mean = mean(value),
             upper = quantile(value,0.975),
             lower = quantile(value,0.025))
-  ggplot(pd) +
+
+ggplot(pd) +
   geom_ribbon(aes(ymin=lower,ymax=upper,x=time,group=interaction(source,chain)),fill="skyblue") +
-  geom_line(data=subset(pd,source=="predicted"),aes(y=mean,x=time,group=interaction(source,chain),colour=interaction(source,chain))) +
+  geom_line(data=subset(pd,source=="predicted"),aes(y=mean,x=time,group=factor(chain),colour=factor(chain))) +
+  geom_line(data=subset(pd,source=="observed"),aes(y=mean,x=time,group=1)) +
   facet_grid(variable ~ trial,scale="free")
 
 smry = summary(fit_fb_sample)

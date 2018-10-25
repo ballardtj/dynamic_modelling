@@ -30,11 +30,11 @@ parameters {
   //real<lower=0> gain3;                   //effect of difficulty on effort
   //real gain4;                   //effect of difficulty on change in performance;
   //real gain5;
-  real<lower=0> g_alpha;
-  real g_beta;
+  //real<lower=0> g_alpha;
+ // real g_beta;
   real<lower=0> sigma1;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma2;         //initialize single sigma parameter for entire sample and set lower bound at 0.
-  real<lower=0> sigma3;
+  //real<lower=0> sigma3;
 }
 
 transformed parameters {
@@ -77,7 +77,7 @@ transformed parameters {
       predicted_goal[i] = predicted_goal[i-1];
       //predicted_effort[i] =  predicted_effort[i-1] + eff_int + gain1*(goal[i] - predicted_score[i-1]);// + difficulty[i]*gain2;
       predicted_effort[i] = predicted_effort[i-1] + eff_int + gain1*(predicted_goal[i] - predicted_score[i-1]);///predicted_ability[i];// + difficulty[i]*gain2;
-      predicted_score[i] = predicted_score[i-1] + perf_int + gain2*predicted_effort[i];#*predicted_ability[i]; //predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
+      predicted_score[i] = predicted_score[i-1] + perf_int/100 + gain2*predicted_effort[i];#*predicted_ability[i]; //predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
     }
   }
 
@@ -97,15 +97,24 @@ model {
   //delta_slope ~ normal(0,10);
   eff_0 ~ normal(5,1);
   eff_int ~ normal(0,1);
-  perf_int ~ normal(0,2);
+  perf_int ~ normal(0,1);
   gain1 ~ normal(0,1);
   gain2 ~ normal(0,1);  //set prior on gain1
   //gain3 ~ normal(0,10);
   sigma1 ~ normal(0,1);         //set prior on sigma1
   sigma2 ~ normal(0,1);         //set prior on sigma2
-  g_alpha ~ normal(0,1);
-  g_beta ~ normal(0,1);
-  sigma3 ~ normal(0,1);
+ // g_alpha ~ normal(0,1);
+ // g_beta ~ normal(0,1);
+ // sigma3 ~ normal(0,1);
+
+  //  eff_0 ~ normal(6.5,1);
+  // eff_int ~ normal(-0.6,1);
+  // perf_int ~ normal(0,0.1);
+  // gain1 ~ normal(0.1,0.1);
+  // gain2 ~ normal(0.2,0.1);  //set prior on gain1
+  // //gain3 ~ normal(0,10);
+  // sigma1 ~ normal(2,1);         //set prior on sigma1
+  // sigma2 ~ normal(2,1);         //set prior on sigma2
 
   for(i in 1:Ntotal){
     effort[i] ~ normal(predicted_effort[i],sigma1); //T[0,];
@@ -127,6 +136,6 @@ generated quantities {
     //evaluate likelihood of observed goal given a normal distribution with mean = predicted_goal and sd = sigma
     sampled_effort[i] = normal_rng(predicted_effort[i],sigma1);
     sampled_score[i] = normal_rng(predicted_score[i],sigma2);
-    sampled_goal[i] = normal_rng(predicted_goal[i],sigma3);
+    sampled_goal[i] = normal_rng(predicted_goal[i],2);
   }
 }
