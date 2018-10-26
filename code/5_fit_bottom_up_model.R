@@ -70,7 +70,7 @@ fit_fb_sample
 
 save(fit_fb_sample,file="data/derived/fit_fb_sample.RData")
 
-pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted'))]
+pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted')|str_detect(names(fit_fb_sample),'outcome'))]
 traceplot(fit_fb_sample,pars)#,inc_warmup = TRUE)
 
 pdf(file="figures/pairs.pdf",height=10,width=12)
