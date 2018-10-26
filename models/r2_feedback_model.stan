@@ -23,7 +23,7 @@ parameters {
 
   real<lower=0> eff_0;
   real eff_int;
-  real<lower=0> perf_int;
+  //real<lower=0> perf_int;
   //real<lower=0> dp_int;         //linear change in performnace;
   real<lower=0> gain1;                   //initialize single gain1 parameter for entire sample
   real<lower=0> gain2;                   //initialize single gain2 parameter for entire sample
@@ -32,8 +32,11 @@ parameters {
   //real gain5;
   //real<lower=0> g_alpha;
  // real g_beta;
-  real<lower=0> sigma1;         //initialize single sigma parameter for entire sample and set lower bound at 0.
-  real<lower=0> sigma2;         //initialize single sigma parameter for entire sample and set lower bound at 0.
+  real<lower=0> sigma11;         //initialize single sigma parameter for entire sample and set lower bound at 0.
+  real<lower=0> sigma12;         //initialize single sigma parameter for entire sample and set lower bound at 0.
+  real<lower=0> sigma21;         //initialize single sigma parameter for entire sample and set lower bound at 0.
+  real<lower=0> sigma22;         //initialize single sigma parameter for entire sample and set lower bound at 0.
+  //real<lower=0> sigma3;
   //real<lower=0> sigma3;
 }
 
@@ -42,6 +45,11 @@ transformed parameters {
   //real predicted_ability[Ntotal];
   real predicted_effort[Ntotal];
   real predicted_score[Ntotal];
+  real predicted_change_in_effort[Ntotal];
+  real predicted_change_in_score[Ntotal];
+  real score_outcome[Ntotal];
+  real effort_outcome[Ntotal];
+
   //real predicted_alpha;//[Ntotal];
   //real predicted_beta;//[Ntotal];
   //real ability_max;
@@ -70,21 +78,35 @@ transformed parameters {
       if(trial[i]>1){
         predicted_goal[i] = goal[i]; //predicted_goal[i-1] + g_alpha*(predicted_score[i-1]-predicted_goal[i-1]) + g_beta;
       }
-      predicted_effort[i] = eff_0 + eff_int + gain1*predicted_goal[i];///predicted_ability[i];//+ difficulty[i]*gain2; //discrepancy is equal to the goal at the start of the trial
-      predicted_score[i] = perf_int + gain2*predicted_effort[i];#//*predicted_ability[i];  //predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
+
+      predicted_change_in_effort[i] = eff_int + gain1*predicted_goal[i];///predicted_ability[i];//+ difficulty[i]*gain2; //discrepancy is equal to the goal at the start of the trial
+      predicted_effort[i] = eff_0 + predicted_change_in_effort[i];
+
+      predicted_change_in_score[i] = gain2*predicted_effort[i];#//*predicted_ability[i];  //predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
+      predicted_score[i] = predicted_change_in_score[i];
+
+      effort_outcome[i] = predicted_effort[i];
+      score_outcome[i] = predicted_score[i];
     }
     if(time[i]>1){
       predicted_goal[i] = predicted_goal[i-1];
       //predicted_effort[i] =  predicted_effort[i-1] + eff_int + gain1*(goal[i] - predicted_score[i-1]);// + difficulty[i]*gain2;
-      predicted_effort[i] = predicted_effort[i-1] + eff_int + gain1*(predicted_goal[i] - predicted_score[i-1]);///predicted_ability[i];// + difficulty[i]*gain2;
-      predicted_score[i] = predicted_score[i-1] + perf_int/100 + gain2*predicted_effort[i];#*predicted_ability[i]; //predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
+
+      predicted_change_in_effort[i] = eff_int + gain1*(predicted_goal[i] - predicted_score[i-1]);///predicted_ability[i];// + difficulty[i]*gain2;
+      predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
+
+      predicted_change_in_score[i] = gain2*predicted_effort[i];#//*predicted_ability[i];  //predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
+      predicted_score[i] = predicted_score[i-1] + predicted_change_in_score[i];
+
+      effort_outcome[i] = predicted_change_in_effort[i];
+      score_outcome[i] = predicted_change_in_score[i];
     }
   }
-
-
 }
 
 model {
+  real change_in_effort;
+  real change_in_score;
   //PRIORS
   //ability_0 ~ normal(0,1);
   //max_ability_gain ~ normal(0,5);
@@ -97,12 +119,14 @@ model {
   //delta_slope ~ normal(0,10);
   eff_0 ~ normal(5,1);
   eff_int ~ normal(0,1);
-  perf_int ~ normal(0,1);
+  //perf_int ~ normal(0,1);
   gain1 ~ normal(0,1);
   gain2 ~ normal(0,1);  //set prior on gain1
   //gain3 ~ normal(0,10);
-  sigma1 ~ normal(0,1);         //set prior on sigma1
-  sigma2 ~ normal(0,1);         //set prior on sigma2
+  sigma11 ~ normal(0,1);         //set prior on sigma1
+  sigma21 ~ normal(0,1);         //set prior on sigma2
+  sigma12 ~ normal(0,1);         //set prior on sigma1
+  sigma22 ~ normal(0,1);         //set prior on sigma2
  // g_alpha ~ normal(0,1);
  // g_beta ~ normal(0,1);
  // sigma3 ~ normal(0,1);
@@ -117,25 +141,38 @@ model {
   // sigma2 ~ normal(2,1);         //set prior on sigma2
 
   for(i in 1:Ntotal){
-    effort[i] ~ normal(predicted_effort[i],sigma1); //T[0,];
-    score[i] ~ normal(predicted_score[i],sigma2); //T[0,];
+    if(time[i]==1){
+      effort[i] ~ normal(effort_outcome[i],sigma11);
+      score[i] ~ normal(score_outcome[i],sigma21);
+      //change_in_effort[i] = predicted_effort[i];
+      //change_in_score[i] = predicted_score[i];
+    }
+    if(time[i]>1){
+      change_in_effort = effort[i]-effort[i-1];
+      change_in_score = score[i]-score[i-1];
+
+      change_in_effort ~ normal(effort_outcome[i],sigma12); //T[0,];
+      change_in_score ~ normal(score_outcome[i],sigma22); //T[0,];
+    }
+
+
     //goal[i] ~ normal(predicted_goal[i],sigma3); //T[0,];
   }
 }
 
 //NOTE: The generated quantities block (below) is NOT needed for the model to run. However, it can be useful for generating posterior predictives from the model. The posterior predictives from this model were presented in the "model evalutation" section of the paper.
 
-generated quantities {
-  real sampled_effort[Ntotal];
-  real sampled_score[Ntotal];
-  real sampled_goal[Ntotal];
-
-  //loop through all trials in the dataset performing bracketed operations on each one
-  for(i in 1:Ntotal){
-    //if the trial being considered is the first trial for that subject...
-    //evaluate likelihood of observed goal given a normal distribution with mean = predicted_goal and sd = sigma
-    sampled_effort[i] = normal_rng(predicted_effort[i],sigma1);
-    sampled_score[i] = normal_rng(predicted_score[i],sigma2);
-    sampled_goal[i] = normal_rng(predicted_goal[i],2);
-  }
-}
+// generated quantities {
+//   real sampled_effort[Ntotal];
+//   real sampled_score[Ntotal];
+//   real sampled_goal[Ntotal];
+//
+//   //loop through all trials in the dataset performing bracketed operations on each one
+//   for(i in 1:Ntotal){
+//     //if the trial being considered is the first trial for that subject...
+//     //evaluate likelihood of observed goal given a normal distribution with mean = predicted_goal and sd = sigma
+//     sampled_effort[i] = normal_rng(predicted_effort[i],2);
+//     sampled_score[i] = normal_rng(predicted_score[i],2);
+//     sampled_goal[i] = normal_rng(predicted_goal[i],2);
+//   }
+// }

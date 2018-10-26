@@ -2,6 +2,8 @@
 #in Ballard, Palada, Griffin, and Neal (2018). The files for the models themselves
 #are located in the 'models' folder.
 
+#TODO: Initial effort evaluated against predicted initial effort, which is eff_0 + change_in_effort at time 1.
+
 
 #clear workspace
 rm(list=ls())
@@ -28,6 +30,12 @@ stan_list$overall_time = (stan_list$trial-1)*5 + stan_list$time
 #stan_list$trial_index = (stan_list$subject-1)*5 + stan_list$trial
 #stan_list$goal = stan_list$goal / 20
 #stan_list$score = stan_list$score / 20
+
+data = data %>%
+  mutate(change_in_score = score-lag(score),
+         change_in_score = if_else(time==1,score,change_in_score),
+         change_in_effort = effort-lag(effort),
+         change_in_effort = if_else(time==1,effort,change_in_effort))
 
 
 ##---------------
@@ -85,7 +93,7 @@ dev.off()
 
 # data = dim(samples$sampled_goal)
 
-samples =rstan::extract(fit_fb_sample,permuted=FALSE)
+samples =rstan::extract(fit_fb_sample,permuted=T)
 
 #Get 100 samples for posterior predictives
 samples_used = sample(1:1000,size=100)
@@ -96,53 +104,62 @@ pp_list=list()
 # chain=2
 # iter=5
 
-get_sample=function(samples,obs,variable,chain,iter){
-  variable_name = paste0('sampled_',variable,'[',obs,']')
-  val = samples[,,variable_name][iter,chain]
-  #print(obs)
-  return(val)
-}
+# get_sample=function(samples,obs,variable,chain,iter){
+#   variable_name = paste0('sampled_',variable,'[',obs,']')
+#   val = samples[,,variable_name][iter,chain]
+#   #print(obs)
+#   return(val)
+# }
 ctr=0
-for(i in 1:10){
-  print(i)
-  for(c in 1:4){
+for(i in 1:100){
+  #print(i)
+ # for(c in 1:4){
     ctr=ctr+1
     pp_list[[ctr]]= data %>%
-      rowwise() %>%
-      mutate(predicted_goal = get_sample(samples,obs,variable='goal',chain=c,iter=samples_used[i]),
-           #predicted_ability = samples$predicted_ability[samples_used[i],],
+     # rowwise() %>%
+      mutate(predicted_goal = samples$predicted_goal[samples_used[i],], #get_sample(samples,obs,variable='goal',chain=c,iter=samples_used[i]),
+             predicted_effort = samples$predicted_effort[samples_used[i],],
+             predicted_score = samples$predicted_score[samples_used[i],],
+             predicted_change_in_effort = samples$effort_outcome[samples_used[i],],
+             predicted_change_in_score = samples$score_outcome[samples_used[i],]
+             #predicted_ability = samples$predicted_ability[samples_used[i],],
            #predicted_alpha = samples$predicted_alpha[samples_used[i],],
            #predicted_beta = samples$predicted_beta[samples_used[i],],
-           predicted_effort = get_sample(samples,obs,variable='effort',chain=c,iter=samples_used[i]),
-           predicted_score = get_sample(samples,obs,variable='score',chain=c,iter=samples_used[i])) %>%
+          # predicted_effort = get_sample(samples,obs,variable='effort',chain=c,iter=samples_used[i]),
+           #predicted_score = get_sample(samples,obs,variable='score',chain=c,iter=samples_used[i])
+          ) %>%
       group_by(trial,time) %>%
       summarise(iter = samples_used[i],
-                chain = c,
               predicted_goal = mean(predicted_goal),
               #predicted_ability = mean(predicted_ability),
               #predicted_alpha = mean(predicted_alpha),
               #predicted_beta = mean(predicted_beta),
               predicted_effort = mean(predicted_effort),
               predicted_score = mean(predicted_score),
+              predicted_changeineffort  = mean(predicted_change_in_effort),
+              predicted_changeinscore = mean(predicted_change_in_score),
               observed_goal = mean(goal),
               observed_effort = mean(effort),
-              observed_score = mean(score))
-  }
+              observed_score = mean(score),
+              observed_changeineffort = mean(change_in_effort),
+              observed_changeinscore = mean(change_in_score))
+
 }
 
 pd = bind_rows(pp_list) %>%
-  gather(key=key,value=value,predicted_goal:observed_score) %>%
+  gather(key=key,value=value,predicted_goal:observed_changeinscore) %>%
   separate(col=key,into=c('source','variable')) %>%
   #mutate(condition = factor(condition,levels=c('approach','avoidance'),labels=c('Approach','Avoidance'))) %>%
-  group_by(trial,time,source,variable,chain) %>%
+  group_by(trial,time,source,variable) %>%
   summarise(mean = mean(value),
             upper = quantile(value,0.975),
             lower = quantile(value,0.025))
 
 ggplot(pd) +
-  geom_ribbon(aes(ymin=lower,ymax=upper,x=time,group=interaction(source,chain)),fill="skyblue") +
-  geom_line(data=subset(pd,source=="predicted"),aes(y=mean,x=time,group=factor(chain),colour=factor(chain))) +
-  geom_line(data=subset(pd,source=="observed"),aes(y=mean,x=time,group=1)) +
+  geom_ribbon(aes(ymin=lower,ymax=upper,x=time,group=source),fill="skyblue") +
+  geom_line(aes(y=mean,x=time,group=factor(source),colour=factor(source))) +
+  #geom_line(data=subset(pd,source=="predicted"),aes(y=mean,x=time,group=factor(chain),colour=factor(chain))) +
+  #geom_line(data=subset(pd,source=="observed"),aes(y=mean,x=time,group=1)) +
   facet_grid(variable ~ trial,scale="free")
 
 smry = summary(fit_fb_sample)
