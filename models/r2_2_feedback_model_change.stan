@@ -33,14 +33,13 @@ parameters {
  // real gain23;                    //effort x ability interaction
   //real gain4;                   //effect of difficulty on change in performance;
   //real gain5;
-  //real<lower=0> g_alpha;
- // real g_beta;
+  real<lower=0> g_alpha;
+  real g_beta;
   real<lower=0> sigma11;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma12;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma21;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma22;         //initialize single sigma parameter for entire sample and set lower bound at 0.
-  //real<lower=0> sigma3;
-  //real<lower=0> sigma3;
+  real<lower=0> sigma3;
 }
 
 transformed parameters {
@@ -79,13 +78,13 @@ transformed parameters {
         predicted_goal[i] = goal[i];
       }
       if(trial[i]>1){
-        predicted_goal[i] = goal[i]; //predicted_goal[i-1] + g_alpha*(predicted_score[i-1]-predicted_goal[i-1]) + g_beta;
+        predicted_goal[i] = predicted_goal[i-1] + g_alpha*(predicted_score[i-1]-predicted_goal[i-1]) + g_beta;
       }
 
-      predicted_change_in_effort[i] = eff_int + gain11*predicted_goal[i] + gain12*predicted_ability[i];// + gain13*predicted_goal[i]*predicted_ability[i];///predicted_ability[i];//+ difficulty[i]*gain2; //discrepancy is equal to the goal at the start of the trial
+      predicted_change_in_effort[i] = eff_int + gain11*predicted_goal[i] + gain12*predicted_ability[i];
       predicted_effort[i] = eff_0 + predicted_change_in_effort[i] ;
 
-      predicted_change_in_score[i] = perf_int + gain21*predicted_effort[i] + gain22*predicted_ability[i];// + gain23*predicted_effort[i]*predicted_ability[i];  //predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
+      predicted_change_in_score[i] = perf_int + gain21*predicted_effort[i] + gain22*predicted_ability[i];
       predicted_score[i] = predicted_change_in_score[i];
 
       effort_outcome[i] = predicted_effort[i];
@@ -93,12 +92,11 @@ transformed parameters {
     }
     if(time[i]>1){
       predicted_goal[i] = predicted_goal[i-1];
-      //predicted_effort[i] =  predicted_effort[i-1] + eff_int + gain1*(goal[i] - predicted_score[i-1]);// + difficulty[i]*gain2;
 
-      predicted_change_in_effort[i] = eff_int + gain11*(predicted_goal[i] - predicted_score[i-1]) + gain12*predicted_ability[i];// + gain13*predicted_goal[i]*predicted_ability[i];///predicted_ability[i];// + difficulty[i]*gain2;
+      predicted_change_in_effort[i] = eff_int + gain11*(predicted_goal[i] - predicted_score[i-1]) + gain12*predicted_ability[i];
       predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
 
-      predicted_change_in_score[i] = perf_int + gain21*predicted_effort[i] + gain22*predicted_ability[i];// + gain23*predicted_effort[i]*predicted_ability[i];;//*predicted_ability[i];  //predicted_ability[i] / (1 + exp(-(predicted_alpha+predicted_beta*predicted_effort[i])));
+      predicted_change_in_score[i] = perf_int + gain21*predicted_effort[i] + gain22*predicted_ability[i];
       predicted_score[i] = predicted_score[i-1] + predicted_change_in_score[i];
 
       effort_outcome[i] = predicted_change_in_effort[i];
@@ -133,9 +131,9 @@ model {
   sigma21 ~ normal(0,10);         //set prior on sigma2
   sigma12 ~ normal(0,10);         //set prior on sigma1
   sigma22 ~ normal(0,10);         //set prior on sigma2
- // g_alpha ~ normal(0,1);
- // g_beta ~ normal(0,1);
- // sigma3 ~ normal(0,1);
+  g_alpha ~ normal(0,1);
+  g_beta ~ normal(0,1);
+  sigma3 ~ normal(0,1);
 
   //  eff_0 ~ normal(6.5,1);
   // eff_int ~ normal(-0.6,1);
@@ -162,7 +160,7 @@ model {
     }
 
 
-    //goal[i] ~ normal(predicted_goal[i],sigma3); //T[0,];
+    goal[i] ~ normal(predicted_goal[i],sigma3); //T[0,];
   }
 }
 
@@ -188,6 +186,6 @@ generated quantities {
     //evaluate likelihood of observed goal given a normal distribution with mean = predicted_goal and sd = sigma
     // sampled_effort[i] = normal_rng(predicted_effort[i],2);
     // sampled_score[i] = normal_rng(predicted_score[i],2);
-    sampled_goal[i] = normal_rng(predicted_goal[i],1);
+    sampled_goal[i] = normal_rng(predicted_goal[i],sigma3);
   }
 }
