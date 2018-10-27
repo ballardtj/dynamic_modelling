@@ -2,7 +2,6 @@
 #in Ballard, Palada, Griffin, and Neal (2018). The files for the models themselves
 #are located in the 'models' folder.
 
-#TODO: Initial effort evaluated against predicted initial effort, which is eff_0 + change_in_effort at time 1.
 
 
 #clear workspace
@@ -60,7 +59,8 @@ data = data %>%
 # Model 1: Bottom-up sample-level Model
 
 #implement model
-fit_fb_sample = stan(file="models/r2_feedback_model.stan",
+fit_fb_sample = stan(file="models/r2_2_feedback_model_change.stan",
+                     #file="models/r2_1_feedback_model_same_variance.stan",
                      data=stan_list,
                      cores=4,
                      control=list(adapt_delta=0.8))
@@ -117,12 +117,12 @@ for(i in 1:100){
     ctr=ctr+1
     pp_list[[ctr]]= data %>%
      # rowwise() %>%
-      mutate(predicted_goal = samples$predicted_goal[samples_used[i],], #get_sample(samples,obs,variable='goal',chain=c,iter=samples_used[i]),
-             predicted_effort = samples$predicted_effort[samples_used[i],],
-             predicted_score = samples$predicted_score[samples_used[i],],
+      mutate(predicted_goal = samples$sampled_goal[samples_used[i],], #get_sample(samples,obs,variable='goal',chain=c,iter=samples_used[i]),
+             predicted_effort = samples$sampled_effort[samples_used[i],],
+             predicted_score = samples$sampled_score[samples_used[i],],
              predicted_change_in_effort = samples$effort_outcome[samples_used[i],],
-             predicted_change_in_score = samples$score_outcome[samples_used[i],]
-             #predicted_ability = samples$predicted_ability[samples_used[i],],
+             predicted_change_in_score = samples$score_outcome[samples_used[i],],
+             predicted_ability = samples$predicted_ability[samples_used[i],]
            #predicted_alpha = samples$predicted_alpha[samples_used[i],],
            #predicted_beta = samples$predicted_beta[samples_used[i],],
           # predicted_effort = get_sample(samples,obs,variable='effort',chain=c,iter=samples_used[i]),
@@ -131,7 +131,7 @@ for(i in 1:100){
       group_by(trial,time) %>%
       summarise(iter = samples_used[i],
               predicted_goal = mean(predicted_goal),
-              #predicted_ability = mean(predicted_ability),
+              predicted_ability = mean(predicted_ability),
               #predicted_alpha = mean(predicted_alpha),
               #predicted_beta = mean(predicted_beta),
               predicted_effort = mean(predicted_effort),
