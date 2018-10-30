@@ -22,8 +22,23 @@ stan_list = as.list(data)
 #stan_list$subject = ceiling (stan_list$subject / 2)
 stan_list$Ntotal = nrow(data)
 stan_list$overall_time = (stan_list$trial-1)*5 + stan_list$time
-#stan_list$Nsubj = length(unique(data$subject))
-#stan_list$Ntrial = length(unique(data$trial))
+
+stan_list$Nglobal_trial = length(unique(data$subject))*length(unique(data$trial))
+stan_list$goal = data %>% group_by(subject,trial) %>% summarise(goal = mean(goal)) %>% pull(goal)
+stan_list$global_trial_number = data %>%
+  group_by(time) %>%
+  mutate(global_trial_number = 1:n()) %>%
+  ungroup() %>%
+  arrange(subject,trial) %>% pull(global_trial_number)
+
+
+
+
+# stan_list$Nsubj = length(unique(data$subject))
+# stan_list$Ntrial = length(unique(data$trial))
+
+
+
 #stan_list$time = stan_list$time/60
 #stan_list$goal = data %>% group_by(subject,trial) %>% summarise(goal = mean(goal)) %>% pull(goal)
 #stan_list$trial_index = (stan_list$subject-1)*5 + stan_list$trial
@@ -62,8 +77,9 @@ data = data %>%
 fit_fb_sample = stan(file="models/r2_2_feedback_model_change.stan",
                      #file="models/r2_1_feedback_model_same_variance.stan",
                      data=stan_list,
-                     cores=4,
-                     control=list(adapt_delta=0.8))
+                     cores=6,
+                     chains=6,
+                     control=list(adapt_delta=0.99,max_treedepth=20))
 
 #view summary of results
 fit_fb_sample
@@ -71,7 +87,7 @@ fit_fb_sample
 save(fit_fb_sample,file="data/derived/fit_fb_sample.RData")
 
 pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted')|str_detect(names(fit_fb_sample),'outcome'))]
-traceplot(fit_fb_sample,pars)#,inc_warmup = TRUE)
+traceplot(fit_fb_sample,pars=pars)#,inc_warmup = TRUE)
 
 pdf(file="figures/pairs.pdf",height=10,width=12)
 pairs(fit_fb_sample,pars=pars)
@@ -136,18 +152,19 @@ for(i in 1:100){
               #predicted_beta = mean(predicted_beta),
               predicted_effort = mean(predicted_effort),
               predicted_score = mean(predicted_score),
-              predicted_changeineffort  = mean(predicted_change_in_effort),
-              predicted_changeinscore = mean(predicted_change_in_score),
+              #predicted_changeineffort  = mean(predicted_change_in_effort),
+              #predicted_changeinscore = mean(predicted_change_in_score),
               observed_goal = mean(goal),
               observed_effort = mean(effort),
-              observed_score = mean(score),
-              observed_changeineffort = mean(change_in_effort),
-              observed_changeinscore = mean(change_in_score))
+              observed_score = mean(score)
+              #observed_changeineffort = mean(change_in_effort),
+              #observed_changeinscore = mean(change_in_score)
+              )
 
 }
 
 pd = bind_rows(pp_list) %>%
-  gather(key=key,value=value,predicted_goal:observed_changeinscore) %>%
+  gather(key=key,value=value,predicted_goal:observed_score) %>%
   separate(col=key,into=c('source','variable')) %>%
   #mutate(condition = factor(condition,levels=c('approach','avoidance'),labels=c('Approach','Avoidance'))) %>%
   group_by(trial,time,source,variable) %>%
