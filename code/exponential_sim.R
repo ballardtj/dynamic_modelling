@@ -6,8 +6,8 @@ expand.grid(effort = seq(0,10,0.1),
             assymptote = seq(05,10,01)) %>%
   mutate(value = assymptote /(1+exp(-(alpha+effort*beta)))) %>%
   ggplot() +
-  geom_line(aes(x=effort,y=value,colour=factor(beta))) +
-  facet_grid(alpha~assymptote)
+  geom_line(aes(x=effort,y=value,colour=factor(alpha))) +
+  facet_grid(beta~assymptote)
 
 
 
