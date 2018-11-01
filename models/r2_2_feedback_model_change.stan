@@ -62,6 +62,9 @@ transformed parameters {
   real ability_max = 1;
   real ability_0 = 0;
   real perf_int = 0;
+  real required_change_in_score;
+  real required_effort;
+  real ability_gap;
   //real g_alpha = 1;
   //real gain1 = 1;
   //real eff_int = 0;
@@ -89,18 +92,37 @@ transformed parameters {
         predicted_goal[global_trial_number[i]] = predicted_goal[global_trial_number[i]-1] + predicted_change_in_goal[global_trial_number[i]];
       }
 
-      predicted_change_in_effort[i] = eff_int + gain11*predicted_goal[global_trial_number[i]] + gain12*predicted_ability[i];
-      predicted_effort[i] = eff_0 + predicted_change_in_effort[i] ;
+      //predicted_change_in_effort[i] = eff_int + gain11*predicted_goal[global_trial_number[i]] + gain12*predicted_ability[i];
+      required_change_in_score = predicted_goal[global_trial_number[i]]  / 5;
+      if(gain22*predicted_ability[i] > required_change_in_score ){
+        required_effort = (-log((gain22*predicted_ability[i] - required_change_in_score)  / required_change_in_score ) - gain20) / gain21;
+      } else {
+        required_effort = 10;
 
-      predicted_change_in_score[i] = perf_int + gain21*predicted_effort[i] + gain22*predicted_ability[i];
+      }
+
+      predicted_change_in_effort[i] = (required_effort - eff_0);
+      predicted_effort[i] = eff_0 + predicted_change_in_effort[i];
+
+      predicted_change_in_score[i] = gain22*predicted_ability[i] / (1 + exp(-(gain20 + gain21*predicted_effort[i]  ) ));
       predicted_score[i] = predicted_change_in_score[i];
 
       effort_outcome[i] = predicted_effort[i];
       score_outcome[i] = predicted_score[i];
     }
     if(time[i]>1){
-      predicted_change_in_effort[i] = eff_int + gain11*(predicted_goal[global_trial_number[i]] - predicted_score[i-1]) + gain12*predicted_ability[i];
-      predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
+      //predicted_change_in_effort[i] = eff_int + gain11*(predicted_goal[global_trial_number[i]] - predicted_score[i-1]) + gain12*predicted_ability[i];
+      //predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
+       required_change_in_score = (predicted_goal[global_trial_number[i]]-predicted_score[i-1])  / (6-time[i]);
+      if(gain22*predicted_ability[i] > required_change_in_score ){
+        required_effort = (-log((gain22*predicted_ability[i] - required_change_in_score)  / required_change_in_score ) - gain20) / gain21;
+      } else {
+        required_effort = 10;
+
+      }
+
+      predicted_change_in_effort[i] = (required_effort - predicted_effort[i-1]);
+      predicted_effort[i] = eff_0 + predicted_change_in_effort[i];
 
       predicted_change_in_score[i] = gain22*predicted_ability[i] / (1 + exp(-(gain20 + gain21*predicted_effort[i]  ) )); //    perf_int +  +
       predicted_score[i] = predicted_score[i-1] + predicted_change_in_score[i];

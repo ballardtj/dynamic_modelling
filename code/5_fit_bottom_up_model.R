@@ -77,8 +77,8 @@ data = data %>%
 fit_fb_sample = stan(file="models/r2_2_feedback_model_change.stan",
                      #file="models/r2_1_feedback_model_same_variance.stan",
                      data=stan_list,
-                     cores=6,
-                     chains=6,
+                     cores=4,
+                     chains=4,
                      control=list(adapt_delta=0.99,max_treedepth=20))
 
 #view summary of results
