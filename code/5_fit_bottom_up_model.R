@@ -14,6 +14,10 @@ library(tidybayes)
 library(shinystan)
 #make sure working directory is set to the "analysis" folder
 
+#New effort model still not fitting:
+# -- perhaps parameters need to be constrained to very small levels to keep effort from blowing out
+# -- perhaps intercept needs to be added to TR to account for bias
+
 #load data
 load("data/clean/goal_data.RData")
 

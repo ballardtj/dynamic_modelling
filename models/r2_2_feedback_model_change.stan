@@ -24,12 +24,12 @@ parameters {
   //real<lower=0> delta_int;
   //real<lower=0> delta_slope;
 
-  real<lower=0,upper=10> eff_0;
-  real eff_int;
+  //real<lower=0,upper=10> eff_0;
+  //real eff_int;
  // real perf_int;
   //real<lower=0> dp_int;         //linear change in performnace;
-  real gain11;                    //discrepancy on effort
-  real gain12;                     //ability on effort
+  //real gain11;                    //discrepancy on effort
+ // real gain12;                     //ability on effort
   //real gain13;                    //discrepancy x ability interaction
   real gain20;
   real<lower=0> gain21;            //effort on score
@@ -39,7 +39,9 @@ parameters {
   //real gain5;
   real<lower=0,upper=1> g_alpha;
   real<lower=0> g_beta;
-  real<lower=0> sigma11;         //initialize single sigma parameter for entire sample and set lower bound at 0.
+  real e_alpha;
+  real<lower=0> e_beta;
+  //real<lower=0> sigma11;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma12;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma21;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma22;         //initialize single sigma parameter for entire sample and set lower bound at 0.
@@ -62,9 +64,9 @@ transformed parameters {
   real ability_max = 1;
   real ability_0 = 0;
   real perf_int = 0;
-  real required_change_in_score;
-  real required_effort;
-  real ability_gap;
+  real time_required;
+  real time_available;
+
   //real g_alpha = 1;
   //real gain1 = 1;
   //real eff_int = 0;
@@ -86,43 +88,33 @@ transformed parameters {
       if(trial[i]==1){
         predicted_change_in_goal[global_trial_number[i]] = 0;
         predicted_goal[global_trial_number[i]] = goal[global_trial_number[i]];
+        predicted_change_in_effort[i] = 0;
+        predicted_effort[i] = effort[i];
+
       }
       if(trial[i]>1){
         predicted_change_in_goal[global_trial_number[i]] = g_alpha*(predicted_score[i-1]-predicted_goal[global_trial_number[i]-1]) + g_beta;
         predicted_goal[global_trial_number[i]] = predicted_goal[global_trial_number[i]-1] + predicted_change_in_goal[global_trial_number[i]];
+         //predicted_change_in_effort[i] = eff_int + gain11*predicted_goal[global_trial_number[i]] + gain12*predicted_ability[i];
+        time_available = 6-time[i];
+        time_required = predicted_goal[global_trial_number[i]] / predicted_change_in_score[i-1];
+        predicted_change_in_effort[i] = e_alpha*(time_required - time_available) + e_beta;
+        predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
       }
-
-      //predicted_change_in_effort[i] = eff_int + gain11*predicted_goal[global_trial_number[i]] + gain12*predicted_ability[i];
-      required_change_in_score = predicted_goal[global_trial_number[i]]  / 5;
-      if(gain22*predicted_ability[i] > required_change_in_score ){
-        required_effort = (-log((gain22*predicted_ability[i] - required_change_in_score)  / required_change_in_score ) - gain20) / gain21;
-      } else {
-        required_effort = 10;
-
-      }
-
-      predicted_change_in_effort[i] = (required_effort - eff_0);
-      predicted_effort[i] = eff_0 + predicted_change_in_effort[i];
 
       predicted_change_in_score[i] = gain22*predicted_ability[i] / (1 + exp(-(gain20 + gain21*predicted_effort[i]  ) ));
       predicted_score[i] = predicted_change_in_score[i];
 
-      effort_outcome[i] = predicted_effort[i];
+      effort_outcome[i] = predicted_change_in_effort[i];
       score_outcome[i] = predicted_score[i];
     }
     if(time[i]>1){
       //predicted_change_in_effort[i] = eff_int + gain11*(predicted_goal[global_trial_number[i]] - predicted_score[i-1]) + gain12*predicted_ability[i];
       //predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
-       required_change_in_score = (predicted_goal[global_trial_number[i]]-predicted_score[i-1])  / (6-time[i]);
-      if(gain22*predicted_ability[i] > required_change_in_score ){
-        required_effort = (-log((gain22*predicted_ability[i] - required_change_in_score)  / required_change_in_score ) - gain20) / gain21;
-      } else {
-        required_effort = 10;
-
-      }
-
-      predicted_change_in_effort[i] = (required_effort - predicted_effort[i-1]);
-      predicted_effort[i] = eff_0 + predicted_change_in_effort[i];
+      time_available = 6-time[i];
+      time_required = predicted_goal[global_trial_number[i]] / predicted_change_in_score[i-1];
+      predicted_change_in_effort[i] = e_alpha*(time_required - time_available) + e_beta;
+      predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
 
       predicted_change_in_score[i] = gain22*predicted_ability[i] / (1 + exp(-(gain20 + gain21*predicted_effort[i]  ) )); //    perf_int +  +
       predicted_score[i] = predicted_score[i-1] + predicted_change_in_score[i];
@@ -147,22 +139,24 @@ model {
   //beta_slope ~ normal(0,10);
   //delta_int ~ normal(0,10);
   //delta_slope ~ normal(0,10);
-  eff_0 ~ normal(5,1);
-  eff_int ~ normal(0,1);
+  //eff_0 ~ normal(5,1);
+ // eff_int ~ normal(0,1);
  // perf_int ~ normal(0,1);
-  gain11 ~ normal(0,1);
-  gain12 ~ normal(0,1);  //set prior on gain1
+  //gain11 ~ normal(0,1);
+  //gain12 ~ normal(0,1);  //set prior on gain1
   gain20 ~ normal(0,1);
   gain21 ~ normal(0,1);
   gain22 ~ normal(0,1);
  // gain13 ~ normal(0,10);
 //  gain23 ~ normal(0,10);
-  sigma11 ~ normal(0,1);         //set prior on sigma1
+  //sigma11 ~ normal(0,1);         //set prior on sigma1
   sigma21 ~ normal(0,1);         //set prior on sigma2
   sigma12 ~ normal(0,1);         //set prior on sigma1
   sigma22 ~ normal(0,1);         //set prior on sigma2
  // g_alpha ~ normal(0,1);
-  //g_beta ~ normal(0,1);
+  g_beta ~ normal(0,1);
+  e_alpha ~ normal(0,1);
+  e_beta ~ normal(0,1);
   sigma3 ~ normal(0,1);
 
   //  eff_0 ~ normal(6.5,1);
@@ -176,11 +170,14 @@ model {
 
   for(i in 1:Ntotal){
     if(time[i]==1){
-      effort[i] ~ normal(effort_outcome[i],sigma11);
+      //effort[i] ~ normal(effort_outcome[i],sigma11);
       score[i] ~ normal(score_outcome[i],sigma21);
       //change_in_effort[i] = predicted_effort[i];
       //change_in_score[i] = predicted_score[i];
       if(trial[i]>1){
+        change_in_effort = effort[i]-effort[i-1];
+        change_in_effort ~ normal(effort_outcome[i],sigma12);
+
         change_in_goal = goal[global_trial_number[i]]-goal[global_trial_number[i]-1];
         change_in_goal ~ normal(predicted_change_in_goal[global_trial_number[i]],sigma3); //T[0,];
       }
@@ -211,19 +208,20 @@ generated quantities {
   //loop through all trials in the dataset performing bracketed operations on each one
   for(i in 1:Ntotal){
     if(time[i]==1){
-      sampled_effort[i] = normal_rng(predicted_effort[i],sigma11);
-      sampled_score[i] = normal_rng(predicted_score[i],sigma21);
+      sampled_score[i] = predicted_score[i];#normal_rng(predicted_score[i],sigma21);
       if(trial[i]==1){
         sampled_goal[i] = goal[global_trial_number[i]];
+         sampled_effort[i] = effort[i];
       }
       if(trial[i]>1){
-        sampled_goal[i] = sampled_goal[i-1] + normal_rng(predicted_change_in_goal[global_trial_number[i]],sigma3);
+        sampled_goal[i] = sampled_goal[i-1] + predicted_change_in_goal[global_trial_number[i]]; //normal_rng(predicted_change_in_goal[global_trial_number[i]],sigma3);
+        sampled_effort[i] = sampled_effort[i-1] + predicted_change_in_effort[i];//normal_rng(predicted_change_in_effort[i],sigma12);
       }
     }
     if(time[i]>1){
       sampled_goal[i] = sampled_goal[i-1];
-      sampled_effort[i] = sampled_effort[i-1] + normal_rng(predicted_change_in_effort[i],sigma12);
-      sampled_score[i] = sampled_score[i-1] + normal_rng(predicted_change_in_score[i],sigma22);
+      sampled_effort[i] = sampled_effort[i-1] + predicted_change_in_effort[i]; //normal_rng(predicted_change_in_effort[i],sigma12);
+      sampled_score[i] = sampled_score[i-1] + predicted_change_in_score[i];// normal_rng(predicted_change_in_score[i],sigma22);
     }
 
     //if the trial being considered is the first trial for that subject...
