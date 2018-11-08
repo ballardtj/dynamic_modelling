@@ -26,6 +26,8 @@ parameters {
 
   //real<lower=0,upper=10> eff_0;
   real eff_int;
+  real<lower=0> el_int;
+  real<upper=0> el_slope;
  // real perf_int;
   //real<lower=0> dp_int;         //linear change in performnace;
  real<lower=0> gain11;                    //discrepancy on effort
@@ -64,6 +66,7 @@ transformed parameters {
   real ability_max = 1;
   real ability_0 = 0;
   real perf_int = 0;
+  real expected_lag[Ntotal];
   real time_required[Ntotal];
   real TR_m_TA[Ntotal];
   real time_available;
@@ -90,6 +93,7 @@ transformed parameters {
       if(trial[i]==1){
         predicted_change_in_goal[global_trial_number[i]] = 0;
         predicted_goal[global_trial_number[i]] = goal[global_trial_number[i]];
+
         time_required[i] = 0;
         TR_m_TA[i] = 0;
         predicted_change_in_effort[i] = 0;
@@ -100,17 +104,25 @@ transformed parameters {
         predicted_change_in_goal[global_trial_number[i]] = g_alpha*(predicted_score[i-1]-predicted_goal[global_trial_number[i]-1]) + g_beta;
         predicted_goal[global_trial_number[i]] = predicted_goal[global_trial_number[i]-1] + predicted_change_in_goal[global_trial_number[i]];
          //predicted_change_in_effort[i] = eff_int + gain11*predicted_goal[global_trial_number[i]] + gain12*predicted_ability[i];
-        eff_0 = eff_int + gain11*predicted_goal[global_trial_number[i]] + gain12*predicted_ability[i];
-        time_available = 6-time[i];
-        time_required[i] = predicted_goal[global_trial_number[i]] / predicted_change_in_score[i-1];
-        TR_m_TA[i] = time_required[i]-time_available;
-        predicted_change_in_effort[i] = e_alpha*(TR_m_TA[i] + e_beta);
-        predicted_effort[i] = eff_0 + predicted_change_in_effort[i];
+        // eff_0 = eff_int + gain11*predicted_goal[global_trial_number[i]] + gain12*predicted_ability[i];
+        // time_available = 6-time[i];
+        // time_required[i] = predicted_goal[global_trial_number[i]] / predicted_change_in_score[i-1];
+        // TR_m_TA[i] = time_required[i]-time_available;
+        // predicted_change_in_effort[i] = e_alpha*(TR_m_TA[i] + e_beta);
+        // predicted_effort[i] = eff_0 + predicted_change_in_effort[i];
         //
         //predicted_change_in_effort[i] = 0;
         //predicted_effort[i] = effort[i];
 
       }
+
+      eff_0 = eff_int + gain11*predicted_goal[global_trial_number[i]] + gain12*predicted_ability[i];
+      time_available = 6-time[i];
+      expected_lag[i] = (el_int-el_slope) + el_slope*predicted_ability[i];
+      time_required[i] = predicted_goal[global_trial_number[i]] * expected_lag[i];
+      TR_m_TA[i] = time_required[i]-time_available;
+      predicted_change_in_effort[i] = e_alpha*(TR_m_TA[i] + e_beta);
+      predicted_effort[i] = eff_0 + predicted_change_in_effort[i];
 
       // time_available = 6-time[i];
       // time_required = predicted_goal[global_trial_number[i]] / predicted_change_in_score[i-1];
@@ -127,7 +139,8 @@ transformed parameters {
       //predicted_change_in_effort[i] = eff_int + gain11*(predicted_goal[global_trial_number[i]] - predicted_score[i-1]) + gain12*predicted_ability[i];
       //predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
       time_available = 6-time[i];
-      time_required[i] = (predicted_goal[global_trial_number[i]] - predicted_score[i-1])  / predicted_change_in_score[i-1];
+      expected_lag[i] = (el_int-el_slope) + el_slope*predicted_ability[i];
+      time_required[i] = (predicted_goal[global_trial_number[i]] - predicted_score[i-1]) * expected_lag[i];
       TR_m_TA[i] = time_required[i]-time_available;
       predicted_change_in_effort[i] = e_alpha*(TR_m_TA[i] + e_beta );
       predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
@@ -157,6 +170,8 @@ model {
   //delta_slope ~ normal(0,10);
   //eff_0 ~ normal(5,1);
   eff_int ~ normal(5,1);
+  el_int ~ normal(0,1);
+  el_slope ~ normal(0,1);
  // perf_int ~ normal(0,1);
   gain11 ~ normal(0,1);
   gain12 ~ normal(0,1);  //set prior on gain1

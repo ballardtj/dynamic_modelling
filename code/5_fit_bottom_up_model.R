@@ -90,8 +90,14 @@ fit_fb_sample
 
 save(fit_fb_sample,file="data/derived/fit_fb_sample.RData")
 
-pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted')|str_detect(names(fit_fb_sample),'outcome'))]
-traceplot(fit_fb_sample,pars=pars,inc_warmup = TRUE)
+pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|
+                                str_detect(names(fit_fb_sample),'predicted')|
+                                str_detect(names(fit_fb_sample),'outcome')|
+                                str_detect(names(fit_fb_sample),'time')|
+                                str_detect(names(fit_fb_sample),'TR_m_TA')|
+                                str_detect(names(fit_fb_sample),'expected'))]
+
+traceplot(fit_fb_sample,pars=pars)#,inc_warmup = TRUE)
 
 pdf(file="figures/pairs.pdf",height=10,width=12)
 pairs(fit_fb_sample,pars=pars)
@@ -138,6 +144,7 @@ for(i in 1:100){
     pp_list[[ctr]]= data %>%
      # rowwise() %>%
       mutate(predicted_goal = samples$sampled_goal[samples_used[i],], #get_sample(samples,obs,variable='goal',chain=c,iter=samples_used[i]),
+             predicted_lag = samples$expected_lag[samples_used[i],],
              predicted_TR = samples$time_required[samples_used[i],], #get_sample(samples,obs,variable='goal',chain=c,iter=samples_used[i]),
              predicted_TR_m_TA = samples$TR_m_TA[samples_used[i],],
              predicted_effort = samples$sampled_effort[samples_used[i],],
@@ -154,7 +161,7 @@ for(i in 1:100){
       summarise(iter = samples_used[i],
               predicted_goal = mean(predicted_goal),
               predicted_ability = mean(predicted_ability),
-              predicted_TR = mean(predicted_TR),
+              predicted_lag = mean(predicted_lag),
               predicted_TRmTA = mean(predicted_TR_m_TA),
               #predicted_alpha = mean(predicted_alpha),
               #predicted_beta = mean(predicted_beta),
