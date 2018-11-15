@@ -189,19 +189,19 @@ generated quantities {
   //loop through all trials in the dataset performing bracketed operations on each one
   for(i in 1:Ntotal){
     if(time[i]==1){
-      sampled_effort[i] = normal_rng(predicted_effort[i],sigma11);
-      sampled_score[i] = normal_rng(predicted_score[i],sigma21);
+      sampled_effort[i] = predicted_effort[i]; //normal_rng(predicted_effort[i],sigma11);
+      sampled_score[i] = predicted_score[i]; //normal_rng(predicted_score[i],sigma21);
       if(trial[i]==1){
         sampled_goal[i] = goal[global_trial_number[i]];
       }
       if(trial[i]>1){
-        sampled_goal[i] = sampled_goal[i-1] + normal_rng(predicted_change_in_goal[global_trial_number[i]],sigma3);
+        sampled_goal[i] = predicted_goal[global_trial_number[i]];  //sampled_goal[i-1] + normal_rng(predicted_change_in_goal[global_trial_number[i]],sigma3);
       }
     }
     if(time[i]>1){
       sampled_goal[i] = sampled_goal[i-1];
-      sampled_effort[i] = sampled_effort[i-1] + normal_rng(predicted_change_in_effort[i],sigma12);
-      sampled_score[i] = sampled_score[i-1] + normal_rng(predicted_change_in_score[i],sigma22);
+      sampled_effort[i] = predicted_effort[i]; //sampled_effort[i-1] + normal_rng(predicted_change_in_effort[i],sigma12);
+      sampled_score[i] = predicted_score[i]; //sampled_score[i-1] + normal_rng(predicted_change_in_score[i],sigma22);
     }
 
     //if the trial being considered is the first trial for that subject...
