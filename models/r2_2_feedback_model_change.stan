@@ -30,7 +30,7 @@ parameters {
   //real<lower=0> dp_int;         //linear change in performnace;
   real gain11;                    //discrepancy on effort
   real gain12;                     //ability on effort
-  //real gain13;                    //discrepancy x ability interaction
+  real gain13;                    //discrepancy x ability interaction
   real gain20;
   real<lower=0> gain21;            //effort on score
   real<lower=0> gain22;            //ability on score
@@ -62,6 +62,7 @@ transformed parameters {
   real ability_max = 1;
   real ability_0 = 0;
   real perf_int = 0;
+  real eff_start;
   //real g_alpha = 1;
   //real gain1 = 1;
   //real eff_int = 0;
@@ -89,8 +90,9 @@ transformed parameters {
         predicted_goal[global_trial_number[i]] = predicted_goal[global_trial_number[i]-1] + predicted_change_in_goal[global_trial_number[i]];
       }
 
+      eff_start = eff_0 + gain13*trial[i];
       predicted_change_in_effort[i] = eff_int + gain11*predicted_goal[global_trial_number[i]] + gain12*predicted_ability[i]*predicted_goal[global_trial_number[i]];
-      predicted_effort[i] = eff_0 + predicted_change_in_effort[i] ;
+      predicted_effort[i] = eff_start + predicted_change_in_effort[i] ;
 
       predicted_change_in_score[i] = perf_int + gain21*predicted_effort[i] + gain22*predicted_ability[i];
       predicted_score[i] = predicted_change_in_score[i];
@@ -133,7 +135,7 @@ model {
   gain20 ~ normal(0,1);
   gain21 ~ normal(0,1);
   gain22 ~ normal(0,1);
- // gain13 ~ normal(0,10);
+  gain13 ~ normal(0,1);
 //  gain23 ~ normal(0,10);
   sigma11 ~ normal(0,1);         //set prior on sigma1
   sigma21 ~ normal(0,1);         //set prior on sigma2
