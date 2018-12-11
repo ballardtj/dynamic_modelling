@@ -1,8 +1,22 @@
+
+#TODO:
+
+#1) Check model fit, does effort need to be bounded? Use Andrew's updated effort equation'
+#2) Graph output of effort-performance equation based on obtained parameter estimates.
+
 #NOTE: This script is used to implement the Bayesian change models presented
 #in Ballard, Palada, Griffin, and Neal (2018). The files for the models themselves
 #are located in the 'models' folder.
 
+#Make first time point performance equation the same as previous one (DONE)
+#Swap out sampled DV for predicted DV (DONE)
+#Does effort need to continue from trial to trial? Might be we can do this with self-feedback
+#Does effort DV need to be bounded somehow?
+#Do we need to tweak how effort relates to performance?
+#Does effort need to have a return to baseline process? Does the equation need to predict change in effort rather than effort?
+#Does the performance assymtote need an interecpt?
 
+#Does the original version work with expanded out priors?
 
 #clear workspace
 rm(list=ls())
@@ -33,6 +47,9 @@ stan_list$global_trial_number = data %>%
 
 
 
+# effort = seq(0,10,0.1)
+# performance = 3.69*1 / (1 + exp(-(-5.17 + 0.82*effort  ) ))
+# plot(effort,performance,ylim=c(0,4))
 
 # stan_list$Nsubj = length(unique(data$subject))
 # stan_list$Ntrial = length(unique(data$trial))
@@ -74,7 +91,7 @@ data = data %>%
 # Model 1: Bottom-up sample-level Model
 
 #implement model
-fit_fb_sample = stan(file="models/r2_2_feedback_model_change.stan",
+fit_fb_sample = stan(file="models/r2_2_feedback_model_change_v2.stan",
                      #file="models/r2_1_feedback_model_same_variance.stan",
                      data=stan_list,
                      cores=4,
