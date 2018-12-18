@@ -47,9 +47,9 @@ stan_list$global_trial_number = data %>%
 
 
 
-effort = seq(0,10,0.1)
-performance = (1.2 + 9.55*1) / (1 + exp(-(-8.87 + -1.22*1 + 1.37*effort  ) ))
-plot(effort,performance,ylim=c(0,10))
+# effort = seq(0,10,0.1)
+# performance = (1.2 + 9.55*1) / (1 + exp(-(-8.87 + -1.22*1 + 1.37*effort  ) ))
+# plot(effort,performance,ylim=c(0,10))
 
 #(gain23 + gain22*predicted_ability[i]) / (1 + exp(-(gain20 + gain24*predicted_ability[i] + gain21*predicted_effort[i]  ) )); //
 
@@ -93,27 +93,27 @@ data = data %>%
 # Model 1: Bottom-up sample-level Model
 
 #implement model
-fit_fb_sample = stan(file="models/r2_2_feedback_model_change_v8.stan",
+fit_fb_sample = stan(file="models/r2_2_feedback_model_change_v12.stan",
                      #file="models/r2_1_feedback_model_same_variance.stan",
                      data=stan_list,
                      cores=4,
                      chains=4,
-                     init_r = 1,
+                   #  init_r = 1,
                      #iter=2000,
                      #refresh=10,
-                     control=list(adapt_delta=0.99,max_treedepth=20))
+                     control=list(adapt_delta=0.9,max_treedepth=20))
 
 #view summary of results
 fit_fb_sample
 
-save(fit_fb_sample,file="data/derived/fit_fb_sample_v8.RData")
+save(fit_fb_sample,file="data/derived/fit_fb_sample_v12.RData")
 
 load(file="data/derived/fit_fb_sample_v5.RData")
 
 pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted')|str_detect(names(fit_fb_sample),'outcome'))]
 traceplot(fit_fb_sample,pars=pars)#,inc_warmup = TRUE)
 
-pdf(file="figures/pairs.pdf",height=10,width=12)
+pdf(file="figures/pairs_v5.pdf",height=10,width=12)
 pairs(fit_fb_sample,pars=pars)
 dev.off()
 

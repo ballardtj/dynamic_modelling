@@ -35,7 +35,7 @@ parameters {
   real gain12;                     //ability on effort
   real gain13;                    //discrepancy x ability interaction
   real gain20;
-  real alpha;
+  real<lower=0,upper=1>  alpha;
   real<lower=0> gain21;            //effort on score
   real<lower=0> gain22;            //ability on score
   real<lower=0> gain23;
@@ -148,7 +148,7 @@ model {
   //delta_slope ~ normal(0,10);
   eff_0 ~ normal(5,1);
   //eff_change_int ~ normal(0,1);
-  alpha ~ normal(0,1); //uniform
+ // alpha ~ normal(0,1); //uniform
  // perf_int ~ normal(0,1);
 
   gain11 ~ normal(0,1);
