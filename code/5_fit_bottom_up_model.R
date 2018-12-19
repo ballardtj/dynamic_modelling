@@ -101,7 +101,7 @@ fit_fb_sample = stan(file="models/r2_2_feedback_model_change_v12.stan",
                    #  init_r = 1,
                      #iter=2000,
                      #refresh=10,
-                     control=list(adapt_delta=0.9,max_treedepth=20))
+                     control=list(adapt_delta=0.99,max_treedepth=20))
 
 #view summary of results
 fit_fb_sample

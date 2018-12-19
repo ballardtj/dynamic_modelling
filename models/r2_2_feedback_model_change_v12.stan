@@ -2,6 +2,8 @@
 //The goal was to help with estimation, since there's a great deal of collinearity between the effects
 //of GPD and the GPD*skill interaction.
 
+//also forced eff_change_int to be negative to represent fatigue.
+
 //Also consider - does eff_change_int need to decrease over time?
 
 data {
@@ -31,7 +33,7 @@ parameters {
   //real<lower=0> delta_slope;
 
   real<lower=0,upper=10> eff_0;
-  real eff_change_int;
+  real<upper=0> eff_change_int;
  // real perf_int;
   //real<lower=0> dp_int;         //linear change in performnace;
   real gain11;                    //discrepancy on effort
