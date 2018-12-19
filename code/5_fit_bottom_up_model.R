@@ -9,12 +9,12 @@
 #are located in the 'models' folder.
 
 #Make first time point performance equation the same as previous one (DONE)
-#Swap out sampled DV for predicted DV (DONE)
+#Swap out sampled DV for predicted DV (DONE) - doesn't help
 #Does effort need to continue from trial to trial? Might be we can do this with self-feedback
 #Does effort DV need to be bounded somehow?
 #Do we need to tweak how effort relates to performance?
 #Does effort need to have a return to baseline process? Does the equation need to predict change in effort rather than effort?
-#Does the performance assymtote need an interecpt?
+#Does the performance assymtote need an interecpt? (DONE)
 
 #Does the original version work with expanded out priors?
 
@@ -52,6 +52,7 @@ stan_list$global_trial_number = data %>%
 # plot(effort,performance,ylim=c(0,10))
 
 #(gain23 + gain22*predicted_ability[i]) / (1 + exp(-(gain20 + gain24*predicted_ability[i] + gain21*predicted_effort[i]  ) )); //
+
 
 # stan_list$Nsubj = length(unique(data$subject))
 # stan_list$Ntrial = length(unique(data$trial))

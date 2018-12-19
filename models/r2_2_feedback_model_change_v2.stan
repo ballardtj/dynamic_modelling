@@ -1,5 +1,4 @@
 //version 2 - we changed the effort function to be consistent with Andrew's write-up.
-//          - also swapped posterior predictives for value of the latent variable
 
 data {
   int Ntotal;                   //Total number of trials in the dataset (600)
@@ -37,7 +36,8 @@ parameters {
   real gain20;
   real<lower=0,upper=1> alpha;
   real<lower=0> gain21;            //effort on score
-  real<lower=0> gain22;            //ability on score
+  real<lower=0> gain22;
+  real<lower=0> gain23;   //ability on score
  // real gain23;                    //effort x ability interaction
   //real gain4;                   //effect of difficulty on change in performance;
   //real gain5;
@@ -103,7 +103,7 @@ transformed parameters {
 
       predicted_change_in_effort[i] = predicted_effort[i] - eff_start;
 
-      predicted_change_in_score[i] = gain22*predicted_ability[i] / (1 + exp(-(gain20 + gain21*predicted_effort[i]  ) )); //    perf_int +  +
+      predicted_change_in_score[i] =  (gain23 + gain22*predicted_ability[i])    /    (1 + exp(-(gain20 + gain21*predicted_effort[i]  ) )); //    perf_int +  +
       predicted_score[i] = predicted_change_in_score[i];
 
       effort_outcome[i] = predicted_effort[i];
@@ -118,7 +118,7 @@ transformed parameters {
 
       predicted_change_in_effort[i] = predicted_effort[i] - predicted_effort[i-1];
 
-      predicted_change_in_score[i] = gain22*predicted_ability[i] / (1 + exp(-(gain20 + gain21*predicted_effort[i]  ) )); //    perf_int +  +
+      predicted_change_in_score[i] =  (gain23 + gain22*predicted_ability[i])   / (1 + exp(-(gain20 + gain21*predicted_effort[i]  ) )); //    perf_int +  +
       predicted_score[i] = predicted_score[i-1] + predicted_change_in_score[i];
 
       effort_outcome[i] = predicted_change_in_effort[i];
@@ -151,7 +151,7 @@ model {
   gain21 ~ normal(0,1);
   gain22 ~ normal(0,5);
   gain13 ~ normal(0,1);
-//  gain23 ~ normal(0,10);
+  gain23 ~ normal(0,1);
   sigma11 ~ normal(0,1);         //set prior on sigma1
   sigma21 ~ normal(0,1);         //set prior on sigma2
   sigma12 ~ normal(0,1);         //set prior on sigma1
@@ -206,19 +206,19 @@ generated quantities {
   //loop through all trials in the dataset performing bracketed operations on each one
   for(i in 1:Ntotal){
     if(time[i]==1){
-      sampled_effort[i] = predicted_effort[i]; //normal_rng(predicted_effort[i],sigma11);
-      sampled_score[i] = predicted_score[i];// normal_rng(predicted_score[i],sigma21);
+      sampled_effort[i] = normal_rng(predicted_effort[i],sigma11);
+      sampled_score[i] =normal_rng(predicted_score[i],sigma21);
       if(trial[i]==1){
         sampled_goal[i] = goal[global_trial_number[i]];
       }
       if(trial[i]>1){
-        sampled_goal[i] = predicted_goal[global_trial_number[i]]; //sampled_goal[i-1] + normal_rng(predicted_change_in_goal[global_trial_number[i]],sigma3);
+        sampled_goal[i] = sampled_goal[i-1] + normal_rng(predicted_change_in_goal[global_trial_number[i]],sigma3);
       }
     }
     if(time[i]>1){
       sampled_goal[i] = sampled_goal[i-1];
-      sampled_effort[i] = predicted_effort[i];//sampled_effort[i-1] + normal_rng(predicted_change_in_effort[i],sigma12);
-      sampled_score[i] = predicted_score[i]; //sampled_score[i-1] + normal_rng(predicted_change_in_score[i],sigma22);
+      sampled_effort[i] = sampled_effort[i-1] + normal_rng(predicted_change_in_effort[i],sigma12);
+      sampled_score[i] = sampled_score[i-1] + normal_rng(predicted_change_in_score[i],sigma22);
     }
 
     //if the trial being considered is the first trial for that subject...
