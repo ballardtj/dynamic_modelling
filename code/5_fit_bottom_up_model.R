@@ -47,11 +47,12 @@ stan_list$global_trial_number = data %>%
 
 
 
-effort = seq(0,10,0.1)
-performance = (1.61 + 7.49*1) / (1 + exp(-(-7.73 + -0.49*1 + 1.12*effort  ) ))
-plot(effort,performance,ylim=c(0,10))
+# effort = seq(0,10,0.1)
+# performance = (1.2 + 9.55*1) / (1 + exp(-(-8.87 + -1.22*1 + 1.37*effort  ) ))
+# plot(effort,performance,ylim=c(0,10))
 
-(gain23 + gain22*predicted_ability[i])    /    (1 + exp(-(gain20 + gain24*predicted_ability[i] + gain21*predicted_effort[i]  ) ));
+#(gain23 + gain22*predicted_ability[i]) / (1 + exp(-(gain20 + gain24*predicted_ability[i] + gain21*predicted_effort[i]  ) )); //
+
 
 # stan_list$Nsubj = length(unique(data$subject))
 # stan_list$Ntrial = length(unique(data$trial))
@@ -93,23 +94,27 @@ data = data %>%
 # Model 1: Bottom-up sample-level Model
 
 #implement model
-fit_fb_sample = stan(file="models/r2_2_feedback_model_change_v4.stan",
+fit_fb_sample = stan(file="models/r2_2_feedback_model_change_v12.stan",
                      #file="models/r2_1_feedback_model_same_variance.stan",
                      data=stan_list,
                      cores=4,
                      chains=4,
-                     init_r = 1,
-                     control=list(adapt_delta=0.99,max_treedepth=20))
+                   #  init_r = 1,
+                     #iter=2000,
+                     #refresh=10,
+                     control=list(adapt_delta=0.9,max_treedepth=20))
 
 #view summary of results
 fit_fb_sample
 
-save(fit_fb_sample,file="data/derived/fit_fb_sample.RData")
+save(fit_fb_sample,file="data/derived/fit_fb_sample_v12.RData")
+
+load(file="data/derived/fit_fb_sample_v5.RData")
 
 pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted')|str_detect(names(fit_fb_sample),'outcome'))]
 traceplot(fit_fb_sample,pars=pars)#,inc_warmup = TRUE)
 
-pdf(file="figures/pairs.pdf",height=10,width=12)
+pdf(file="figures/pairs_v5.pdf",height=10,width=12)
 pairs(fit_fb_sample,pars=pars)
 dev.off()
 
@@ -184,6 +189,7 @@ for(i in 1:100){
 }
 
 pd = bind_rows(pp_list) %>%
+  mutate(predicted_ability = predicted_ability*10) %>%
   gather(key=key,value=value,predicted_goal:observed_score) %>%
   separate(col=key,into=c('source','variable')) %>%
   #mutate(condition = factor(condition,levels=c('approach','avoidance'),labels=c('Approach','Avoidance'))) %>%
@@ -197,7 +203,8 @@ ggplot(pd) +
   geom_line(aes(y=mean,x=time,group=factor(source),colour=factor(source))) +
   #geom_line(data=subset(pd,source=="predicted"),aes(y=mean,x=time,group=factor(chain),colour=factor(chain))) +
   #geom_line(data=subset(pd,source=="observed"),aes(y=mean,x=time,group=1)) +
-  facet_grid(variable ~ trial,scale="free")
+  facet_grid(variable ~ trial,scale="free") +
+  coord_cartesian(ylim=c(0,10))
 
 smry = summary(fit_fb_sample)
 smry$summary[pars,]
