@@ -9,12 +9,12 @@
 #are located in the 'models' folder.
 
 #Make first time point performance equation the same as previous one (DONE)
-#Swap out sampled DV for predicted DV (DONE)
+#Swap out sampled DV for predicted DV (DONE) - doesn't help
 #Does effort need to continue from trial to trial? Might be we can do this with self-feedback
 #Does effort DV need to be bounded somehow?
 #Do we need to tweak how effort relates to performance?
 #Does effort need to have a return to baseline process? Does the equation need to predict change in effort rather than effort?
-#Does the performance assymtote need an interecpt?
+#Does the performance assymtote need an interecpt? (DONE)
 
 #Does the original version work with expanded out priors?
 
@@ -47,9 +47,11 @@ stan_list$global_trial_number = data %>%
 
 
 
-# effort = seq(0,10,0.1)
-# performance = 3.69*1 / (1 + exp(-(-5.17 + 0.82*effort  ) ))
-# plot(effort,performance,ylim=c(0,4))
+effort = seq(0,10,0.1)
+performance = (1.61 + 7.49*1) / (1 + exp(-(-7.73 + -0.49*1 + 1.12*effort  ) ))
+plot(effort,performance,ylim=c(0,10))
+
+(gain23 + gain22*predicted_ability[i])    /    (1 + exp(-(gain20 + gain24*predicted_ability[i] + gain21*predicted_effort[i]  ) ));
 
 # stan_list$Nsubj = length(unique(data$subject))
 # stan_list$Ntrial = length(unique(data$trial))
@@ -91,7 +93,7 @@ data = data %>%
 # Model 1: Bottom-up sample-level Model
 
 #implement model
-fit_fb_sample = stan(file="models/r2_2_feedback_model_change_v2.stan",
+fit_fb_sample = stan(file="models/r2_2_feedback_model_change_v4.stan",
                      #file="models/r2_1_feedback_model_same_variance.stan",
                      data=stan_list,
                      cores=4,
