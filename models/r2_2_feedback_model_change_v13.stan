@@ -1,8 +1,15 @@
-//version 12 - like version 7 except removed the effect of predicted skill/ability on effort.
-//The goal was to help with estimation, since there's a great deal of collinearity between the effects
-//of GPD and the GPD*skill interaction.
+//version 13 - like version 12 except change in eff is predicted by change in gpd rather than gpd
+//also got rid of initial effort so that effort is initialized based on its objective value.
 
-//latent change model of effort where change is predicted by GPD level
+//also consider - should change in gpd be based on score at end of time bin? currently its based on score at end of the last time bin
+// - does GPD need to be calculated so that it's bounded at 0?
+
+//fits are fine but effort CI is extremely wide
+//consider - switching effort back so that its initialized at the start of each trial
+//plotting predicted variable rather than sampling (though not sure what this will do to performance variable)
+
+//latent change model of effort where change is predicted by change in GPD
+
 
 data {
   int Ntotal;                   //Total number of trials in the dataset (600)
@@ -30,7 +37,7 @@ parameters {
   //real<lower=0> delta_int;
   //real<lower=0> delta_slope;
 
-  real<lower=0,upper=10> eff_0;
+  //real<lower=0,upper=10> eff_0;
   real eff_change_int;
  // real perf_int;
   //real<lower=0> dp_int;         //linear change in performnace;
@@ -48,7 +55,7 @@ parameters {
   //real gain5;
   real<lower=0,upper=1> g_alpha;
   real<lower=0> g_beta;
-  real<lower=0> sigma11;         //initialize single sigma parameter for entire sample and set lower bound at 0.
+  //real<lower=0> sigma11;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma12;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma21;         //initialize single sigma parameter for entire sample and set lower bound at 0.
   real<lower=0> sigma22;         //initialize single sigma parameter for entire sample and set lower bound at 0.
@@ -56,6 +63,7 @@ parameters {
 }
 
 transformed parameters {
+  real gpd[Ntotal];
   real predicted_goal[Nglobal_trial];
   real predicted_ability[Ntotal];
   real predicted_effort[Ntotal];
@@ -63,8 +71,8 @@ transformed parameters {
   real predicted_change_in_goal[Nglobal_trial];
   real predicted_change_in_effort[Ntotal];
   real predicted_change_in_score[Ntotal];
-  //real score_outcome[Ntotal];
-  //real effort_outcome[Ntotal];
+ // real score_outcome[Ntotal];
+//  real effort_outcome[Ntotal];
 
   //real predicted_alpha;//[Ntotal];
   //real predicted_beta;//[Ntotal];
@@ -94,17 +102,22 @@ transformed parameters {
         predicted_change_in_goal[global_trial_number[i]] = 0;
         predicted_goal[global_trial_number[i]] = goal[global_trial_number[i]];
 
-        predicted_change_in_effort[i] = eff_change_int + eff_0*alpha + gain11*predicted_goal[global_trial_number[i]];// +
+        gpd[i] = predicted_goal[global_trial_number[i]];
+
+        //we don't have change in gpd at first time point, so we just estimate initial effort as a free parameter
+        predicted_change_in_effort[i] = 0; //eff_change_int + eff_0*alpha + gain11*predicted_goal[global_trial_number[i]];// +
                               //gain12*predicted_ability[i]*predicted_goal[global_trial_number[i]];
 
-        predicted_effort[i] = eff_0 + predicted_change_in_effort[i];
+        predicted_effort[i] = effort[i];
 
       }
       if(trial[i]>1){
         predicted_change_in_goal[global_trial_number[i]] = g_alpha*(predicted_score[i-1]-predicted_goal[global_trial_number[i]-1]) + g_beta;
         predicted_goal[global_trial_number[i]] = predicted_goal[global_trial_number[i]-1] + predicted_change_in_goal[global_trial_number[i]];
 
-        predicted_change_in_effort[i] =    eff_change_int + predicted_effort[i-1]*alpha + gain11*predicted_goal[global_trial_number[i]];// +
+        gpd[i] = predicted_goal[global_trial_number[i]];
+
+        predicted_change_in_effort[i] =    eff_change_int + predicted_effort[i-1]*alpha + gain11*(gpd[i] - gpd[i-1]);
                              // gain12*predicted_ability[i]*predicted_goal[global_trial_number[i]];
 
         predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
@@ -121,7 +134,9 @@ transformed parameters {
       //predicted_change_in_effort[i] = eff_int + gain11*(predicted_goal[global_trial_number[i]] - predicted_score[i-1]) + gain12*predicted_ability[i]*(predicted_goal[global_trial_number[i]] - predicted_score[i-1]);
       //predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
 
-      predicted_change_in_effort[i] =    eff_change_int + predicted_effort[i-1]*alpha + gain11*predicted_goal[global_trial_number[i]];// +
+        gpd[i] = predicted_goal[global_trial_number[i]] - predicted_score[i-1];
+
+        predicted_change_in_effort[i] =    eff_change_int + predicted_effort[i-1]*alpha + gain11*(gpd[i] - gpd[i-1]);
                               //gain12*predicted_ability[i]*predicted_goal[global_trial_number[i]];
 
         predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
@@ -149,7 +164,7 @@ model {
   //beta_slope ~ normal(0,10);
   //delta_int ~ normal(0,10);
   //delta_slope ~ normal(0,10);
-  eff_0 ~ normal(5,1);
+  //eff_0 ~ normal(5,1);
   eff_change_int ~ normal(0,1);
   alpha ~ normal(0,1); //uniform
  // perf_int ~ normal(0,1);
@@ -163,7 +178,7 @@ model {
   gain24 ~ normal(0,1);
  // gain13 ~ normal(0,1);
 //  gain23 ~ normal(0,10);
-  sigma11 ~ normal(0,1);         //set prior on sigma1
+  //sigma11 ~ normal(0,1);         //set prior on sigma1
   sigma21 ~ normal(0,1);         //set prior on sigma2
   sigma12 ~ normal(0,1);         //set prior on sigma1
   sigma22 ~ normal(0,1);         //set prior on sigma2
@@ -180,7 +195,7 @@ model {
   // sigma1 ~ normal(2,1);         //set prior on sigma1
   // sigma2 ~ normal(2,1);         //set prior on sigma2
 
- for(i in 1:Ntotal){
+  for(i in 1:Ntotal){
     if(time[i]==1){
       //effort[i] ~ normal(effort_outcome[i],sigma11);
       score[i] ~ normal(predicted_score[i],sigma21);

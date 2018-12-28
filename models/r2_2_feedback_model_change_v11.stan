@@ -1,8 +1,8 @@
-//version 12 - like version 7 except removed the effect of predicted skill/ability on effort.
+//version 11 - like version 8 except removed the effect of predicted skill/ability on effort.
 //The goal was to help with estimation, since there's a great deal of collinearity between the effects
 //of GPD and the GPD*skill interaction.
 
-//latent change model of effort where change is predicted by GPD level
+//return to baseline model of effort
 
 data {
   int Ntotal;                   //Total number of trials in the dataset (600)
@@ -31,7 +31,7 @@ parameters {
   //real<lower=0> delta_slope;
 
   real<lower=0,upper=10> eff_0;
-  real eff_change_int;
+  real<lower=0,upper=10> eff_baseline;
  // real perf_int;
   //real<lower=0> dp_int;         //linear change in performnace;
   real gain11;                    //discrepancy on effort
@@ -94,7 +94,7 @@ transformed parameters {
         predicted_change_in_goal[global_trial_number[i]] = 0;
         predicted_goal[global_trial_number[i]] = goal[global_trial_number[i]];
 
-        predicted_change_in_effort[i] = eff_change_int + eff_0*alpha + gain11*predicted_goal[global_trial_number[i]];// +
+        predicted_change_in_effort[i] = (eff_baseline - eff_0)*alpha + gain11*predicted_goal[global_trial_number[i]];// +
                               //gain12*predicted_ability[i]*predicted_goal[global_trial_number[i]];
 
         predicted_effort[i] = eff_0 + predicted_change_in_effort[i];
@@ -104,7 +104,7 @@ transformed parameters {
         predicted_change_in_goal[global_trial_number[i]] = g_alpha*(predicted_score[i-1]-predicted_goal[global_trial_number[i]-1]) + g_beta;
         predicted_goal[global_trial_number[i]] = predicted_goal[global_trial_number[i]-1] + predicted_change_in_goal[global_trial_number[i]];
 
-        predicted_change_in_effort[i] =    eff_change_int + predicted_effort[i-1]*alpha + gain11*predicted_goal[global_trial_number[i]];// +
+        predicted_change_in_effort[i] =    (eff_baseline - predicted_effort[i-1])*alpha + gain11*predicted_goal[global_trial_number[i]];// +
                              // gain12*predicted_ability[i]*predicted_goal[global_trial_number[i]];
 
         predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
@@ -121,7 +121,7 @@ transformed parameters {
       //predicted_change_in_effort[i] = eff_int + gain11*(predicted_goal[global_trial_number[i]] - predicted_score[i-1]) + gain12*predicted_ability[i]*(predicted_goal[global_trial_number[i]] - predicted_score[i-1]);
       //predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
 
-      predicted_change_in_effort[i] =    eff_change_int + predicted_effort[i-1]*alpha + gain11*predicted_goal[global_trial_number[i]];// +
+      predicted_change_in_effort[i] =    (eff_baseline - predicted_effort[i-1])*alpha + gain11*predicted_goal[global_trial_number[i]];// +
                               //gain12*predicted_ability[i]*predicted_goal[global_trial_number[i]];
 
         predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
@@ -150,7 +150,6 @@ model {
   //delta_int ~ normal(0,10);
   //delta_slope ~ normal(0,10);
   eff_0 ~ normal(5,1);
-  eff_change_int ~ normal(0,1);
   alpha ~ normal(0,1); //uniform
  // perf_int ~ normal(0,1);
 

@@ -93,13 +93,15 @@ data = data %>%
 ##---------------------------------------------------------------------------
 # Model 1: Bottom-up sample-level Model
 
+for(m in 18){
+
 #implement model
-fit_fb_sample = stan(file="models/r2_2_feedback_model_change_v12.stan",
+fit_fb_sample = stan(file=paste0("models/r2_2_feedback_model_change_v",m,".stan"),
                      #file="models/r2_1_feedback_model_same_variance.stan",
                      data=stan_list,
                      cores=4,
                      chains=4,
-                   #  init_r = 1,
+                     init_r = 1,
                      #iter=2000,
                      #refresh=10,
                      control=list(adapt_delta=0.99,max_treedepth=20))
@@ -107,9 +109,21 @@ fit_fb_sample = stan(file="models/r2_2_feedback_model_change_v12.stan",
 #view summary of results
 fit_fb_sample
 
-save(fit_fb_sample,file="data/derived/fit_fb_sample_v12.RData")
+save(fit_fb_sample,file=paste0("data/derived/fit_fb_sample_v",m,".RData"))
 
-load(file="data/derived/fit_fb_sample_v5.RData")
+}
+
+
+
+
+
+
+
+
+
+load(file="data/derived/fit_fb_sample_v16.RData")
+
+fit_fb_sample
 
 pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted')|str_detect(names(fit_fb_sample),'outcome'))]
 traceplot(fit_fb_sample,pars=pars)#,inc_warmup = TRUE)
@@ -161,8 +175,8 @@ for(i in 1:100){
       mutate(predicted_goal = samples$sampled_goal[samples_used[i],], #get_sample(samples,obs,variable='goal',chain=c,iter=samples_used[i]),
              predicted_effort = samples$sampled_effort[samples_used[i],],
              predicted_score = samples$sampled_score[samples_used[i],],
-             predicted_change_in_effort = samples$effort_outcome[samples_used[i],],
-             predicted_change_in_score = samples$score_outcome[samples_used[i],],
+            # predicted_change_in_effort = samples$effort_outcome[samples_used[i],],
+            # predicted_change_in_score = samples$score_outcome[samples_used[i],],
              predicted_ability = samples$predicted_ability[samples_used[i],]
            #predicted_alpha = samples$predicted_alpha[samples_used[i],],
            #predicted_beta = samples$predicted_beta[samples_used[i],],

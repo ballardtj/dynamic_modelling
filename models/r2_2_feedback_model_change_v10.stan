@@ -2,7 +2,7 @@
 //The goal was to help with estimation, since there's a great deal of collinearity between the effects
 //of GPD and the GPD*skill interaction.
 
-//this model does not converge easily
+//self feedback model of effort
 
 data {
   int Ntotal;                   //Total number of trials in the dataset (600)
@@ -63,8 +63,8 @@ transformed parameters {
   real predicted_change_in_goal[Nglobal_trial];
   real predicted_change_in_effort[Ntotal];
   real predicted_change_in_score[Ntotal];
-  real score_outcome[Ntotal];
-  real effort_outcome[Ntotal];
+  //real score_outcome[Ntotal];
+  //real effort_outcome[Ntotal];
 
   //real predicted_alpha;//[Ntotal];
   //real predicted_beta;//[Ntotal];
@@ -115,8 +115,8 @@ transformed parameters {
       predicted_change_in_score[i] = (gain23 + gain22*predicted_ability[i]) / (1 + exp(-(gain20 + gain24*predicted_ability[i] + gain21*predicted_effort[i]  ) )); //    perf_int +  +
       predicted_score[i] = predicted_change_in_score[i];
 
-      effort_outcome[i] = predicted_effort[i];
-      score_outcome[i] = predicted_score[i];
+      //effort_outcome[i] = predicted_effort[i];
+      //score_outcome[i] = predicted_score[i];
     }
     if(time[i]>1){
       //predicted_change_in_effort[i] = eff_int + gain11*(predicted_goal[global_trial_number[i]] - predicted_score[i-1]) + gain12*predicted_ability[i]*(predicted_goal[global_trial_number[i]] - predicted_score[i-1]);
@@ -129,8 +129,8 @@ transformed parameters {
        predicted_change_in_score[i] = (gain23 + gain22*predicted_ability[i]) / (1 + exp(-(gain20 + gain24*predicted_ability[i] + gain21*predicted_effort[i]  ) )); //    perf_int +  +
       predicted_score[i] = predicted_score[i-1] + predicted_change_in_score[i];
 
-      effort_outcome[i] = predicted_change_in_effort[i];
-      score_outcome[i] = predicted_change_in_score[i];
+      //effort_outcome[i] = predicted_change_in_effort[i];
+      //score_outcome[i] = predicted_change_in_score[i];
     }
   }
 }
@@ -180,13 +180,16 @@ model {
   // sigma1 ~ normal(2,1);         //set prior on sigma1
   // sigma2 ~ normal(2,1);         //set prior on sigma2
 
-  for(i in 1:Ntotal){
+    for(i in 1:Ntotal){
     if(time[i]==1){
-      effort[i] ~ normal(effort_outcome[i],sigma11);
-      score[i] ~ normal(score_outcome[i],sigma21);
+      //effort[i] ~ normal(effort_outcome[i],sigma11);
+      score[i] ~ normal(predicted_score[i],sigma21);
       //change_in_effort[i] = predicted_effort[i];
       //change_in_score[i] = predicted_score[i];
       if(trial[i]>1){
+        change_in_effort = effort[i]-effort[i-1];
+        change_in_effort ~ normal(predicted_change_in_effort[i],sigma12); //T[0,];
+
         change_in_goal = goal[global_trial_number[i]]-goal[global_trial_number[i]-1];
         change_in_goal ~ normal(predicted_change_in_goal[global_trial_number[i]],sigma3); //T[0,];
       }
@@ -198,8 +201,8 @@ model {
       change_in_effort = effort[i]-effort[i-1];
       change_in_score = score[i]-score[i-1];
 
-      change_in_effort ~ normal(effort_outcome[i],sigma12); //T[0,];
-      change_in_score ~ normal(score_outcome[i],sigma22); //T[0,];
+      change_in_effort ~ normal(predicted_change_in_effort[i],sigma12); //T[0,];
+      change_in_score ~ normal(predicted_change_in_score[i],sigma22); //T[0,];
     }
 
 
@@ -217,13 +220,14 @@ generated quantities {
   //loop through all trials in the dataset performing bracketed operations on each one
   for(i in 1:Ntotal){
     if(time[i]==1){
-      sampled_effort[i] = normal_rng(predicted_effort[i],sigma11);
       sampled_score[i] = normal_rng(predicted_score[i],sigma21);
       if(trial[i]==1){
         sampled_goal[i] = goal[global_trial_number[i]];
+        sampled_effort[i] = effort[i]; //normal_rng(predicted_effort[i],sigma11);
       }
       if(trial[i]>1){
         sampled_goal[i] = sampled_goal[i-1] + normal_rng(predicted_change_in_goal[global_trial_number[i]],sigma3);
+        sampled_effort[i] = sampled_effort[i-1] + normal_rng(predicted_change_in_effort[i],sigma12);
       }
     }
     if(time[i]>1){

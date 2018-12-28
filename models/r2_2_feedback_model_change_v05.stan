@@ -1,6 +1,8 @@
 //version 5 - same as version 4?
 
-//this model does not converge easily
+//Note this model is broken, because it does not contain the correct likelihood function (effort is evaluated as if it restarts)
+//I haven't bothered fixing it though because the model itself is difficult to identify - namely gain11 and gain12 are highly collinear.
+//See Model 10 for a model that fixed both of the issues above.
 
 data {
   int Ntotal;                   //Total number of trials in the dataset (600)
