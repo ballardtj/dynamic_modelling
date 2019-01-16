@@ -1,24 +1,9 @@
 
-#TODO:
-
-#1) Check model fit, does effort need to be bounded? Use Andrew's updated effort equation'
-#2) Graph output of effort-performance equation based on obtained parameter estimates.
-
 #NOTE: This script is used to implement the Bayesian change models presented
 #in Ballard, Palada, Griffin, and Neal (2018). The files for the models themselves
 #are located in the 'models' folder.
 
-#Make first time point performance equation the same as previous one (DONE)
-#Swap out sampled DV for predicted DV (DONE) - doesn't help
-#Does effort need to continue from trial to trial? Might be we can do this with self-feedback
-#Does effort DV need to be bounded somehow?
-#Do we need to tweak how effort relates to performance?
-#Does effort need to have a return to baseline process? Does the equation need to predict change in effort rather than effort?
-#Does the performance assymtote need an interecpt? (DONE)
-
-#Does the original version work with expanded out priors?
-
-#clear workspace
+#start a fresh R session (note this command only works in Rstudio)
 rm(list=ls())
 
 #load rtan
@@ -31,11 +16,11 @@ library(shinystan)
 #load data
 load("data/clean/goal_data.RData")
 
-data = filter(data,condition==1) %>% mutate(obs = 1:n())#only approach for now
+data =  mutate(data,obs = 1:n())#only approach for now
 stan_list = as.list(data)
 #stan_list$subject = ceiling (stan_list$subject / 2)
 stan_list$Ntotal = nrow(data)
-stan_list$overall_time = (stan_list$trial-1)*5 + stan_list$time
+stan_list$practice = (stan_list$trial-1)*5 + stan_list$time
 
 stan_list$Nglobal_trial = length(unique(data$subject))*length(unique(data$trial))
 stan_list$goal = data %>% group_by(subject,trial) %>% summarise(goal = mean(goal)) %>% pull(goal)
@@ -46,12 +31,25 @@ stan_list$global_trial_number = data %>%
   arrange(subject,trial) %>% pull(global_trial_number)
 
 
-
+# practice = 1:50
+# delta = 0.07
+# skill_change = 13.5 #8.58 #4.92, 13.5
+# skill_min = 11.02 #7.09 #3.98, 11.02
+# skill_max = skill_min + skill_change
+#
+# skill = skill_max - (skill_max - skill_min)*(exp(-delta*practice))
+# plot(practice,skill,col="blue")
+#
 # effort = seq(0,10,0.1)
-# performance = (1.2 + 9.55*1) / (1 + exp(-(-8.87 + -1.22*1 + 1.37*effort  ) ))
+# skill = 2.23 + 2.47
+# kappa = 14.80  #3.29, 6.68, 14.80
+# gamma = 6.52  #6.30, 6.52, 6.76
+# performance = skill / (1 + exp(-kappa*(effort-gamma)))
 # plot(effort,performance,ylim=c(0,10))
 
-#(gain23 + gain22*predicted_ability[i]) / (1 + exp(-(gain20 + gain24*predicted_ability[i] + gain21*predicted_effort[i]  ) )); //
+
+#predicted_performance = (gain23 + gain22*predicted_ability[i]) /
+#(1 + exp(-(gain20 + gain24*predicted_ability[i] + gain21*predicted_effort[i]  ) )); //
 
 
 # stan_list$Nsubj = length(unique(data$subject))
@@ -93,7 +91,15 @@ data = data %>%
 ##---------------------------------------------------------------------------
 # Model 1: Bottom-up sample-level Model
 
-for(m in 18){
+for(m in 28:29){
+
+#25 hypothesised model
+#26 linear effort
+#27 linear skill
+#28 linear performance
+#29 linear goal
+
+#m = 29
 
 #implement model
 fit_fb_sample = stan(file=paste0("models/r2_2_feedback_model_change_v",m,".stan"),
@@ -102,7 +108,7 @@ fit_fb_sample = stan(file=paste0("models/r2_2_feedback_model_change_v",m,".stan"
                      cores=4,
                      chains=4,
                      init_r = 1,
-                     #iter=2000,
+                     #iter=1,
                      #refresh=10,
                      control=list(adapt_delta=0.99,max_treedepth=20))
 
@@ -113,22 +119,27 @@ save(fit_fb_sample,file=paste0("data/derived/fit_fb_sample_v",m,".RData"))
 
 }
 
+for(m in 28:29){
+
+load(file=paste0("data/derived/fit_fb_sample_v",m,".RData"))
+
+pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted')|str_detect(names(fit_fb_sample),'outcome')|str_detect(names(fit_fb_sample),'gpd'))]
+
+smry = summary(fit_fb_sample)[[1]]
+smry = smry[rownames(smry) %in% pars,]
+
+round(smry[c('effort_baseline','alpha','beta','effort_0','skill_min',
+             'skill_max','delta','kappa','gamma','theta','lambda','goal_0',
+             'sigma_effort_0','sigma_effort_change','sigma_performance_change',
+             'sigma_goal_0','sigma_goal_change'),],3)
+
+write.csv(smry,file=paste0("results_v",m,".csv"))
 
 
+traceplot(fit_fb_sample,pars=pars)
+ggsave(file=paste0("figures/trace_v",m,".pdf"),height=10,width=12)
 
-
-
-
-
-
-load(file="data/derived/fit_fb_sample_v16.RData")
-
-fit_fb_sample
-
-pars = names(fit_fb_sample)[!(str_detect(names(fit_fb_sample),'sampled')|str_detect(names(fit_fb_sample),'predicted')|str_detect(names(fit_fb_sample),'outcome'))]
-traceplot(fit_fb_sample,pars=pars)#,inc_warmup = TRUE)
-
-pdf(file="figures/pairs_v5.pdf",height=10,width=12)
+pdf(file=paste0("figures/pairs_v",m,".pdf"),height=10,width=12)
 pairs(fit_fb_sample,pars=pars)
 dev.off()
 
@@ -174,10 +185,10 @@ for(i in 1:100){
      # rowwise() %>%
       mutate(predicted_goal = samples$sampled_goal[samples_used[i],], #get_sample(samples,obs,variable='goal',chain=c,iter=samples_used[i]),
              predicted_effort = samples$sampled_effort[samples_used[i],],
-             predicted_score = samples$sampled_score[samples_used[i],],
+             predicted_performance = samples$sampled_performance[samples_used[i],],
             # predicted_change_in_effort = samples$effort_outcome[samples_used[i],],
             # predicted_change_in_score = samples$score_outcome[samples_used[i],],
-             predicted_ability = samples$predicted_ability[samples_used[i],]
+             predicted_skill = samples$predicted_skill[samples_used[i],]
            #predicted_alpha = samples$predicted_alpha[samples_used[i],],
            #predicted_beta = samples$predicted_beta[samples_used[i],],
           # predicted_effort = get_sample(samples,obs,variable='effort',chain=c,iter=samples_used[i]),
@@ -186,31 +197,38 @@ for(i in 1:100){
       group_by(trial,time) %>%
       summarise(iter = samples_used[i],
               predicted_goal = mean(predicted_goal),
-              predicted_ability = mean(predicted_ability),
+              predicted_skill = mean(predicted_skill),
               #predicted_alpha = mean(predicted_alpha),
               #predicted_beta = mean(predicted_beta),
               predicted_effort = mean(predicted_effort),
-              predicted_score = mean(predicted_score),
+              predicted_performance = mean(predicted_performance),
               #predicted_changeineffort  = mean(predicted_change_in_effort),
               #predicted_changeinscore = mean(predicted_change_in_score),
               observed_goal = mean(goal),
               observed_effort = mean(effort),
-              observed_score = mean(score)
+              observed_performance = mean(performance)
               #observed_changeineffort = mean(change_in_effort),
               #observed_changeinscore = mean(change_in_score)
               )
 
 }
 
+
+
+
 pd = bind_rows(pp_list) %>%
-  mutate(predicted_ability = predicted_ability*10) %>%
-  gather(key=key,value=value,predicted_goal:observed_score) %>%
+  mutate(predicted_skill = predicted_skill) %>%
+  gather(key=key,value=value,predicted_goal:observed_performance) %>%
   separate(col=key,into=c('source','variable')) %>%
   #mutate(condition = factor(condition,levels=c('approach','avoidance'),labels=c('Approach','Avoidance'))) %>%
   group_by(trial,time,source,variable) %>%
   summarise(mean = mean(value),
             upper = quantile(value,0.975),
-            lower = quantile(value,0.025))
+            lower = quantile(value,0.025)) %>%
+  ungroup() %>%
+  filter(variable!="skill") %>%
+  mutate(variable = factor(variable,levels=c('effort','performance','goal'),labels=c('Effort','Performance','Goal')),
+         source = factor(source,level=c('observed','predicted'),labels=c('Observed','Predicted')))
 
 ggplot(pd) +
   geom_ribbon(aes(ymin=lower,ymax=upper,x=time,group=source),fill="skyblue") +
@@ -218,7 +236,15 @@ ggplot(pd) +
   #geom_line(data=subset(pd,source=="predicted"),aes(y=mean,x=time,group=factor(chain),colour=factor(chain))) +
   #geom_line(data=subset(pd,source=="observed"),aes(y=mean,x=time,group=1)) +
   facet_grid(variable ~ trial,scale="free") +
-  coord_cartesian(ylim=c(0,10))
+  coord_cartesian(ylim=c(0,10)) +
+  labs(x="Time",y="Level",color="Source")
+
+#ggsave(file=paste0("figures/pp_v",m,".pdf"),height=6,width=8)
+
+ggsave(file=paste0("figures/posterior_predictives_v",m,".pdf"),height=6,width=8)
+
+}
+
 
 smry = summary(fit_fb_sample)
 smry$summary[pars,]

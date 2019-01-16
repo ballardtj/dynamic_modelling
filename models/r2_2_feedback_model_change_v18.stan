@@ -37,7 +37,7 @@ parameters {
   //real gain12;                     //ability on effort
   //real gain13;                    //discrepancy x ability interaction
   real gain20;
-  real alpha;
+  real<lower=0> alpha;
   real<lower=0> gain21;            //effort on score
   real<lower=0> gain22;            //ability on score
   real<lower=0> gain23;
