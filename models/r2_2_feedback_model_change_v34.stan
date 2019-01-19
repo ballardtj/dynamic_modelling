@@ -1,4 +1,4 @@
-//version 29 - like version 25 except linear goal function
+//version 34 - like version 25 except fully linear equations predicting levels of variables
 
 //return to baseline model of effort
 
@@ -17,28 +17,25 @@ data {
 
 parameters {
   //parameters relating to effort variable
-  real<lower=0,upper=1> alpha;
-  real<lower=0,upper=10> effort_baseline;
-  real beta;
-  real<lower=0,upper=10> effort_0;
+  real effort_intercept;
+  real effort_on_gpd;
 
   //paramaeter relating to skill variable
-  real<lower=0.05,upper=1> delta;
-  real<lower=0> skill_change; //difference between skill_max and skill_min;
-  real<lower=0> skill_min;
+  real skill_intercept;
+  real skill_on_practice;
 
   //parameters relating to performance variable
-  real kappa;
-  real gamma;
+  real performance_intercept;
+  real performance_on_effort;
+  real performance_on_skill;
 
   //parameters relating to goal variable
   real goal_intercept;
   real goal_on_performance;
 
   //parmaters for measurement model
-  real<lower=0> sigma_effort_0;
-  real<lower=0> sigma_effort_change;
-  real<lower=0> sigma_performance_change;
+  real<lower=0> sigma_effort;
+  real<lower=0> sigma_performance;
   real<lower=0> sigma_goal;
 }
 
@@ -47,20 +44,18 @@ transformed parameters {
 
   //initialize variables that are calculated from parameters and observed variables
   real gpd[Ntotal];
-  real predicted_change_in_effort[Ntotal];
   real predicted_effort[Ntotal];
   real predicted_skill[Ntotal];
   real predicted_change_in_performance[Ntotal];
   real predicted_performance[Ntotal];
   real predicted_goal[Nglobal_trial];
 
-  real skill_max = skill_min + skill_change;
 
   for(i in 1:Ntotal){
 
      // ##### CALCULATE GOAL LEVEL #####
 
-    if(time[i] == 1){
+     if(time[i] == 1){
       if(trial[i] == 1){
         /*if the first goal striving episode, predicted goal is not modelled.
         This is because there are no previous values of the performance variable,
@@ -80,31 +75,24 @@ transformed parameters {
     // ##### CALCULATE EFFORT #####
 
     if(time[i] == 1){
-      /*if start of goal striving episode, predicted effort is equal to initial effort parameter.
-      This is because we do not have there are no previous values of the effort and gpd variables,
-      which are needed for calculating change in effort. Thus, we just treat effort at the first
-      time point within each episode as a free parameter. */
       gpd[i] = predicted_goal[global_trial_number[i]]; //Note, gpd represents the gpd at the start of the time window (not sure how this should be indexed in the paper)
-      predicted_change_in_effort[i] = 0;
-      predicted_effort[i] = effort_0;
     }
 
     if(time[i] > 1 ){
-      //if not start of goal striving episode, the change in effort is calculated according to Equation 1.
       gpd[i] = predicted_goal[global_trial_number[i]] - predicted_performance[i-1];
-      predicted_change_in_effort[i] = alpha*(effort_baseline  - predicted_effort[i-1]) + beta*(gpd[i]-gpd[i-1]);
-      predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
     }
 
-    // ##### CALCULATE SKILL #####
+    predicted_effort[i] = effort_intercept + effort_on_gpd*gpd[i];
 
-    //skill is determined according to Equation 2.
-    predicted_skill[i] = skill_max - (skill_max-skill_min)*exp(-delta*practice[i]);
+   // ##### CALCULATE SKILL #####
+
+    predicted_skill[i] = skill_intercept + skill_on_practice*practice[i];
 
     // ##### CALCULATE PERFORMANCE #####
 
     //predicted change in performance is calculated according to Equation 4 ## NEED TO UPDATE THIS!
-    predicted_change_in_performance[i] = predicted_skill[i] / (1 + exp(-kappa*(predicted_effort[i] - gamma  ) ));
+    predicted_change_in_performance[i] = performance_intercept + performance_on_effort*predicted_effort[i] +
+        performance_on_skill*predicted_skill[i];
 
     if(time[i] == 1){
       //if start of goal striving episode, predicted performance is just equal to the predicted change in performance for
@@ -121,35 +109,31 @@ transformed parameters {
 
 model {
   //Initialize variables that are needed for calculating the likelihood function
-  real change_in_effort;
   real change_in_performance;
-  real change_in_goal;
 
   //Specify Priors
 
   //priors for parameters relating to effort variable
-  //alpha is bounded between 0 and 1, so by default will have a uniform prior within this range.
-  //effort_baseline is bounded between 0 and 10, so by default will have a uniform prior within this range.
-  beta ~ normal(0,2);
-  //effort_0 is bounded between 0 and 10, so by default will have a uniform prior within this range.
+  effort_intercept ~ normal(0,2);
+  effort_on_gpd ~ normal(0,2);
 
   //priors for paramaeters relating to skill variable
   //delta is bounded between 0.05 and 1, so by default will have a uniform prior within this range.
-  skill_min ~ normal(0,2);
-  skill_change ~ normal(0,2);
+  skill_intercept ~ normal(0,2);
+  skill_on_practice ~ normal(0,2);
 
   //priors for parameters relating to performance variable
-  kappa ~ normal(0,2);
-  gamma ~ normal(5.5,2);
+  performance_intercept ~ normal(0,2);
+  performance_on_effort ~ normal(0,2);
+  performance_on_skill ~ normal(0,2);
 
   //priors for parameters relating to goal variable
   goal_intercept ~ normal(0,2);
   goal_on_performance ~ normal(0,2);
 
   //priors parmaters for standard deviation parameters
-  sigma_effort_0 ~ normal(0,2);
-  sigma_effort_change ~ normal(0,2);
-  sigma_performance_change ~ normal(0,2);
+  sigma_effort ~ normal(0,2);
+  sigma_performance ~ normal(0,2);
   sigma_goal ~ normal(0,2);
 
   //LIKELIHOOD
@@ -165,21 +149,19 @@ model {
       }
     }
 
-     //Evaluate likelihood of observed effort and performance observations
+     //Evaluate likelihood of observed effort
+    effort[i] ~ normal(predicted_effort[i],sigma_effort);
 
+    //Evaluate likelihood of observed performance
     if( time[i] == 1 ){
       //if it's the first observation in the goal striving episode...
-      effort[i] ~ normal(predicted_effort[i],sigma_effort_0);
-      performance[i] ~ normal(predicted_performance[i],sigma_performance_change);
+      performance[i] ~ normal(predicted_performance[i],sigma_performance);
     }
 
     if( time[i] > 1 ){
 
-       change_in_effort = effort[i]-effort[i-1];
-       change_in_effort ~ normal(predicted_change_in_effort[i],sigma_effort_change);
-
        change_in_performance = performance[i]-performance[i-1];
-       change_in_performance ~ normal(predicted_change_in_performance[i],sigma_performance_change); //T[0,];
+       change_in_performance ~ normal(predicted_change_in_performance[i],sigma_performance); //T[0,];
 
     }
   }
@@ -192,16 +174,19 @@ generated quantities {
   real sampled_performance[Ntotal];
   real sampled_goal[Ntotal];
   real log_lik[Ntotal];
-  real change_in_effort;
   real change_in_performance;
 
   //loop through all trials in the dataset performing bracketed operations on each one
   for(i in 1:Ntotal){
+
+
+    sampled_effort[i] = normal_rng(predicted_effort[i],sigma_effort);
+
     if(time[i]==1){
-      sampled_performance[i] = normal_rng(predicted_performance[i],sigma_performance_change);
-      sampled_effort[i] = normal_rng(predicted_effort[i],sigma_effort_0);
+      sampled_performance[i] = normal_rng(predicted_performance[i],sigma_performance);
+
       if(trial[i]==1){
-        sampled_goal[i] = predicted_goal[global_trial_number[i]];
+        sampled_goal[i] = goal[global_trial_number[i]];
       }
       if(trial[i]>1){
         sampled_goal[i] = normal_rng(predicted_goal[global_trial_number[i]],sigma_goal);
@@ -209,38 +194,30 @@ generated quantities {
     }
     if(time[i]>1){
       sampled_goal[i] = sampled_goal[i-1];
-      sampled_effort[i] = sampled_effort[i-1] + normal_rng(predicted_change_in_effort[i],sigma_effort_change);
-      sampled_performance[i] = sampled_performance[i-1] + normal_rng(predicted_change_in_performance[i],sigma_performance_change);
+      sampled_performance[i] = sampled_performance[i-1] + normal_rng(predicted_change_in_performance[i],sigma_performance);
     }
 
   //calculate log likelihood for observation
   if(time[i] == 1){
      if(trial[i]==1){
-        log_lik[i] = normal_lpdf(effort[i] | predicted_effort[i],sigma_effort_0) +
-                     normal_lpdf(performance[i] | predicted_performance[i],sigma_performance_change);
+        log_lik[i] = normal_lpdf(effort[i] | predicted_effort[i],sigma_effort) +
+                     normal_lpdf(performance[i] | predicted_performance[i],sigma_performance);
       }
 
      if(trial[i]>1){
 
         log_lik[i] = normal_lpdf(goal[global_trial_number[i]] | predicted_goal[global_trial_number[i]],sigma_goal) +
-                     normal_lpdf(effort[i] | predicted_effort[i],sigma_effort_0) +
-                     normal_lpdf(performance[i] | predicted_performance[i],sigma_performance_change);
+                     normal_lpdf(effort[i] | predicted_effort[i],sigma_effort) +
+                     normal_lpdf(performance[i] | predicted_performance[i],sigma_performance);
       }
     }
 
     if(time[i] > 1){
-      change_in_effort = effort[i]-effort[i-1];
       change_in_performance = performance[i]-performance[i-1];
 
-      log_lik[i] = normal_lpdf(change_in_effort | predicted_change_in_effort[i],sigma_effort_change) +
-                   normal_lpdf(change_in_performance | predicted_change_in_performance[i],sigma_performance_change);
+      log_lik[i] = normal_lpdf(effort[i] | predicted_effort[i],sigma_effort) +
+                   normal_lpdf(change_in_performance | predicted_change_in_performance[i],sigma_performance);
 
     }
-
-    //if the trial being considered is the first trial for that subject...
-    //evaluate likelihood of observed goal given a normal distribution with mean = predicted_goal and sd = sigma
-    // sampled_effort[i] = normal_rng(predicted_effort[i],2);
-    // sampled_performance[i] = normal_rng(predicted_performance[i],2);
-    //sampled_goal[i] = normal_rng(predicted_goal[i],sigma3);
   }
 }

@@ -1,4 +1,4 @@
-//version 25 - like version 24 except performance function is reparameterized
+//version 33 - like version 25 except goal updates only in response to previous goal
 
 //return to baseline model of effort
 
@@ -75,7 +75,7 @@ transformed parameters {
 
       if(trial[i] > 1){
         //if not the first trial, the change in goal level is calculated according to Equation 2.
-        predicted_change_in_goal[global_trial_number[i]] = theta*(predicted_performance[i-1]-predicted_goal[global_trial_number[i]-1]) + lambda;
+        predicted_change_in_goal[global_trial_number[i]] = theta*predicted_goal[global_trial_number[i]-1] + lambda;
         predicted_goal[global_trial_number[i]] = predicted_goal[global_trial_number[i]-1] + predicted_change_in_goal[global_trial_number[i]];
       }
     }

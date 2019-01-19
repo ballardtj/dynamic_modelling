@@ -1,4 +1,4 @@
-//version 25 - like version 24 except performance function is reparameterized
+//version 31 - like version 25 except that effort updates in response to raw GPD instead of change in GPD
 
 //return to baseline model of effort
 
@@ -95,7 +95,7 @@ transformed parameters {
     if(time[i] > 1 ){
       //if not start of goal striving episode, the change in effort is calculated according to Equation 1.
       gpd[i] = predicted_goal[global_trial_number[i]] - predicted_performance[i-1];
-      predicted_change_in_effort[i] = alpha*(effort_baseline  - predicted_effort[i-1]) + beta*(gpd[i]-gpd[i-1]);
+      predicted_change_in_effort[i] = alpha*(effort_baseline  - predicted_effort[i-1]) + beta*gpd[i];
       predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
     }
 

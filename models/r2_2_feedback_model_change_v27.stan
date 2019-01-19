@@ -130,27 +130,27 @@ model {
   //priors for parameters relating to effort variable
   //alpha is bounded between 0 and 1, so by default will have a uniform prior within this range.
   //effort_baseline is bounded between 0 and 10, so by default will have a uniform prior within this range.
-  beta ~ normal(0,5);
+  beta ~ normal(0,2);
   //effort_0 is bounded between 0 and 10, so by default will have a uniform prior within this range.
 
   //priors for paramaeters relating to skill variable
-  skill_intercept ~ normal(0,5);
-  skill_slope ~ normal(0,5);
+  skill_intercept ~ normal(0,2);
+  skill_slope ~ normal(0,2);
 
   //priors for parameters relating to performance variable
-  kappa ~ normal(0,5);
-  gamma ~ normal(5.5,5);
+  kappa ~ normal(0,2);
+  gamma ~ normal(5.5,2);
 
   //priors for parameters relating to goal variable
   //theta is bounded between 0 and 1, so by default will have a uniform prior within this range.
-  lambda ~ normal(0,5);
+  lambda ~ normal(0,2);
 
   //priors parmaters for standard deviation parameters
-  sigma_effort_0 ~ normal(0,5);
-  sigma_effort_change ~ normal(0,5);
-  sigma_performance_change ~ normal(0,5);
-  sigma_goal_0 ~ normal(0,5);
-  sigma_goal_change ~ normal(0,5);
+  sigma_effort_0 ~ normal(0,2);
+  sigma_effort_change ~ normal(0,2);
+  sigma_performance_change ~ normal(0,2);
+  sigma_goal_0 ~ normal(0,2);
+  sigma_goal_change ~ normal(0,2);
 
   //LIKELIHOOD
   for(i in 1:Ntotal){

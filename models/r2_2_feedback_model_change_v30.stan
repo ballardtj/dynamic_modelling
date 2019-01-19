@@ -1,4 +1,4 @@
-//version 25 - like version 24 except performance function is reparameterized
+//version 30 - like version 25 except effort does not return to baseline, change is just some proportion of raw value
 
 //return to baseline model of effort
 
@@ -18,7 +18,6 @@ data {
 parameters {
   //parameters relating to effort variable
   real<lower=0,upper=1> alpha;
-  real<lower=0,upper=10> effort_baseline;
   real beta;
   real<lower=0,upper=10> effort_0;
 
@@ -95,7 +94,7 @@ transformed parameters {
     if(time[i] > 1 ){
       //if not start of goal striving episode, the change in effort is calculated according to Equation 1.
       gpd[i] = predicted_goal[global_trial_number[i]] - predicted_performance[i-1];
-      predicted_change_in_effort[i] = alpha*(effort_baseline  - predicted_effort[i-1]) + beta*(gpd[i]-gpd[i-1]);
+      predicted_change_in_effort[i] = alpha*predicted_effort[i-1] + beta*(gpd[i]-gpd[i-1]);
       predicted_effort[i] = predicted_effort[i-1] + predicted_change_in_effort[i];
     }
 
@@ -131,8 +130,7 @@ model {
   //Specify Priors
 
   //priors for parameters relating to effort variable
-  //alpha is bounded between 0 and 1, so by default will have a uniform prior within this range.
-  //effort_baseline is bounded between 0 and 10, so by default will have a uniform prior within this range.
+  alpha ~ normal(0,2);
   beta ~ normal(0,2);
   //effort_0 is bounded between 0 and 10, so by default will have a uniform prior within this range.
 
